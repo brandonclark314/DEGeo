@@ -40,29 +40,34 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
     val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 164))
     print("Outputting loss every", val_cycle, "batches")
-    print("Validating every", val_cycle*5, "batches")
+    #print("Validating every", val_cycle*5, "batches")
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
 
-    for i ,(imgs, classes) in bar:
+    for i ,(imgs, gps) in bar:
 
         batch_size = imgs.shape[0]
-        labels = classes
+
+        labels = torch.Tensor([x for x in range(batch_size)])
+
+        gps = gps.to(opt.device)
 
         labels = labels.to(opt.device)
-
 
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
-        out = model(imgs)
+        img_matrix, gps_matrix = model(imgs, labels)
 
         torch.set_printoptions(edgeitems=30)
 
         loss = 0
         
-        loss = criterion(outs, labels)
+        img_loss = criterion(img_matrix, labels)
+        gps_loss = criterion(gps_matrix, labels)
+
+        loss = (img_loss + gps_loss) / 2
 
         loss.backward()
 
@@ -81,10 +86,14 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         
         if i % val_cycle == 0:
             wandb.log({"Training Loss" : loss.item()})
+            wandb.log({"Image Loss": img_loss.item()})
+            wandb.log({"GPS Loss": gps_loss.item()})
             #print("interation", i, "of", len(data_iterator))
         if val_dataloader != None and i % (val_cycle * 5) == 0:
             eval_images(val_dataloader, model, epoch, opt)
+    
     print("The loss of epoch", epoch, "was ", np.mean(losses))
+    return np.mean(losses)
     
 def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train', opt=None):
     if trainset == 'train':

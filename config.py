@@ -17,16 +17,16 @@ def getopt():
 
     opt.size = 224
 
-    opt.n_epochs = 20
+    opt.n_epochs = 32
 
     opt.description = 'ResNet50-4.2M-Im2GPS3k-softH'
     opt.archname = 'JustResNet50'
     opt.evaluate = False
 
-    opt.lr = 1e-2
+    opt.lr = 5e-4
     opt.step_size = 3
 
-    opt.batch_size = 150
+    opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train'
     opt.testset = 'im2gps3k'
