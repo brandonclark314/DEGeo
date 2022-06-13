@@ -29,6 +29,14 @@ from os.path import exists
 
 from config import getopt
 
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return [x, y, z]
+
 # Need to change this to torchvision transforms 
 def my_transform():
 	video_transform_list = [
@@ -65,7 +73,7 @@ def m16_val_transform():
     ])
     return m16_transform_list    
 
-def get_mp16_train(classfile="MP-16_vid2gps.json", opt=None):
+def get_mp16_train(classfile="MP-16_vid2gps.json", opt=None, cartesian_coords=False):
 
     class_info = json.load(open(opt.resources + classfile))
 
@@ -79,12 +87,19 @@ def get_mp16_train(classfile="MP-16_vid2gps.json", opt=None):
         filename = row
         if exists(filename):
             fnames.append(filename)
-            classes.append([float(class_info[row]['latitude']), float(class_info[row]['longitude'])])
+            
+            latitude = float(class_info[row]['latitude'])
+            longitude = float(class_info[row]['longitude'])
+                             
+            if cartesian_coords:
+                classes.append(toCartesian(latitude, longitude))
+            else:
+                classes.append([latitude, longitude])
     
 
     return fnames, classes
 
-def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None):
+def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_coords=False):
 
     class_info = pd.read_csv(opt.resources + classfile)
     base_folder = opt.im2gps3k
@@ -96,8 +111,16 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None):
         filename = base_folder + row[1]['IMG_ID']
         if exists(filename):
             fnames.append(filename)
+            
+            latitude = float(row[1]['LAT'])
+            longitude = float(row[1]['LON'])
             #print(row[1]['LAT'])
-            classes.append([float(row[1]['LAT']), float(row[1]['LON'])])
+    
+            if cartesian_coords:
+                classes.append(toCartesian(latitude, longitude))
+            else:
+                classes.append([latitude, longitude])
+                
     
     #print(classes)
     return fnames, classes
