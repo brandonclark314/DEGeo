@@ -16,7 +16,7 @@ from geopy.distance import geodesic as GD
 from tqdm import tqdm
 
 import wandb
-import evaluate
+#import evaluate
 import pandas as pd
 import json
 
@@ -53,12 +53,13 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         gps = gps.to(opt.device)
 
+        labels = labels.type(torch.LongTensor)
         labels = labels.to(opt.device)
 
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, labels)
+        img_matrix, gps_matrix = model(imgs, gps)
 
         torch.set_printoptions(edgeitems=30)
 

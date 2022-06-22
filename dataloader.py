@@ -73,9 +73,9 @@ def m16_val_transform():
     ])
     return m16_transform_list    
 
-def get_mp16_train(classfile="MP-16_vid2gps.json", opt=None, cartesian_coords=False):
+def get_mp16_train(classfile=None, opt=None, cartesian_coords=True):
 
-    class_info = json.load(open(opt.resources + classfile))
+    class_info = open(opt.resources + classfile).read().splitlines()[1:]
 
     #print("The classes should have been", class_info['34/8d/9055806529.jpg'])
     base_folder = opt.mp16folder
@@ -84,12 +84,12 @@ def get_mp16_train(classfile="MP-16_vid2gps.json", opt=None, cartesian_coords=Fa
     classes = []
 
     for row in class_info:
-        filename = row
+        filename = base_folder + row.split(',')[0]
         if exists(filename):
             fnames.append(filename)
             
-            latitude = float(class_info[row]['latitude'])
-            longitude = float(class_info[row]['longitude'])
+            latitude = float(row.split(',')[2])
+            longitude = float(row.split(',')[3])
                              
             if cartesian_coords:
                 classes.append(toCartesian(latitude, longitude))
@@ -148,7 +148,11 @@ class M16Dataset(Dataset):
         if split == 'train':
             fnames, classes = get_mp16_train(opt=opt)
         if split == 'train1M':
-            fnames, classes = get_mp16_train(classfile="mp16_places365_1M_mapping_h3.json", opt=opt)
+            fnames, classes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
+        if split == 'train500K':
+            fnames, classes = get_mp16_train(classfile="mp16_places365_500K.csv", opt=opt)
+        if split == 'train100K':
+            fnames, classes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
         if split == 'im2gps3k':
             fnames, classes = get_im2gps3k_test(opt=opt)    
         
@@ -197,10 +201,10 @@ if __name__ == "__main__":
 
     opt = getopt()
 
-    dataset = M16Dataset(split='train', opt=opt)
+    dataset = M16Dataset(split='train100K', opt=opt)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=10, num_workers=10, shuffle=False, drop_last=False)
 
     for i, (img, classes) in enumerate(dataloader):
-        print(img)
-        print(classes)
+        print(img.shape)
+        print(classes.shape)
         break

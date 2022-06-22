@@ -10,7 +10,7 @@ class GeoCLIP(nn.Module):
         super().__init__()
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.location_encoder = nn.Sequential(nn.Linear(2, 1000),
+        self.location_encoder = nn.Sequential(nn.Linear(3, 1000),
                                               nn.ReLU(),
                                               nn.Linear(1000, 1000),
                                               nn.ReLU(),
@@ -33,6 +33,7 @@ class GeoCLIP(nn.Module):
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
+        #print(location.shape)
         location_features = self.encode_location(location)
 
         image_features = image_features[:,0,:]
@@ -54,7 +55,7 @@ class GeoCLIP(nn.Module):
 if __name__ == "__main__":
     # Test vit_model with random input
     image = torch.randn(8, 3, 224, 224)
-    location = torch.randn(20, 2)
+    location = torch.randn(20, 3)
     model = GeoCLIP()
     model.eval()
     with torch.no_grad():
