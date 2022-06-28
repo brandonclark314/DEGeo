@@ -30,6 +30,7 @@ class GeoCLIP(nn.Module):
         return self.image_encoder(image)
         
     def encode_location(self, location):
+        location = location.float()
         return self.location_encoder(location)
                                              
     def forward(self, image, location):
