@@ -16,7 +16,6 @@ def getopt():
     opt.resources = "/home/br087771/DEGeo/"
 
     opt.size = 224
-
     opt.n_epochs = 32
 
     opt.description = 'GeoCLIP-100K'
@@ -32,4 +31,4 @@ def getopt():
     opt.testset = 'im2gps3k'
     opt.device = torch.device('cuda')
 
-    return opt
+    return opt 

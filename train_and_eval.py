@@ -61,7 +61,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         
         targets = F.softmax(
             (img_matrix + gps_matrix) / 2, dim=-1
-        ).type(torch.LongTensor)
+        )
         targets = targets.to(opt.device)
 
         torch.set_printoptions(edgeitems=30)
