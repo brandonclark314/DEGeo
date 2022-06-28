@@ -49,24 +49,26 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         batch_size = imgs.shape[0]
 
-        labels = torch.Tensor([x for x in range(batch_size)])
+        # labels = torch.Tensor([x for x in range(batch_size)])
+        # labels = labels.type(torch.LongTensor)
+        # labels = labels.to(opt.device)
 
         gps = gps.to(opt.device)
-
-        labels = labels.type(torch.LongTensor)
-        labels = labels.to(opt.device)
-
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
         img_matrix, gps_matrix = model(imgs, gps)
+        
+        targets = F.softmax(
+            (img_matrix + gps_matrix) / 2, dim=-1
+        ).type(torch.LongTensor)
+        targets = targets.to(opt.device)
 
         torch.set_printoptions(edgeitems=30)
 
         loss = 0
-        
-        img_loss = criterion(img_matrix, labels)
-        gps_loss = criterion(gps_matrix, labels)
+        img_loss = criterion(img_matrix, targets)
+        gps_loss = criterion(gps_matrix, targets.T)
 
         loss = (img_loss + gps_loss) / 2
 

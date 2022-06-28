@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
+import matplotlib.pyplot as plt
 
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
@@ -37,7 +38,6 @@ class GeoCLIP(nn.Module):
         location_features = self.encode_location(location)
 
         image_features = image_features[:,0,:]
-
         image_features = self.mlp(image_features)
 
         # Normalize features
@@ -63,5 +63,13 @@ if __name__ == "__main__":
         
     print(image_features.shape)
     print(location_features.shape)
+    
+    # Plot Image features matrix as heatmap
+    image_features = image_features.cpu().numpy()
+    
+    plt.figure(figsize=(10,10))
+    plt.imshow(image_features, cmap='hot')
+    plt.colorbar()
+    plt.show()
     
     
