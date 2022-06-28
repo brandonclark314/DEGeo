@@ -38,7 +38,7 @@ criterion = torch.nn.CrossEntropyLoss()
 
 model = models.GeoCLIP()
 
-optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-6, weight_decay=0.2)
+optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-3, weight_decay=0.2)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
