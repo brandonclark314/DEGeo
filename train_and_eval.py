@@ -59,16 +59,13 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         optimizer.zero_grad()
         img_matrix, gps_matrix = model(imgs, gps)
         
-        targets = F.softmax(
-            (img_matrix + gps_matrix) / 2, dim=-1
-        )
-        targets = targets.to(opt.device)
+        targets = torch.arange(len(imgs),dtype=torch.long,device=opt.device)
 
         torch.set_printoptions(edgeitems=30)
 
         loss = 0
         img_loss = criterion(img_matrix, targets)
-        gps_loss = criterion(gps_matrix, targets.T)
+        gps_loss = criterion(gps_matrix, targets)
 
         loss = (img_loss + gps_loss) / 2
 

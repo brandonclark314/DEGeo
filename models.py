@@ -20,7 +20,6 @@ class GeoCLIP(nn.Module):
         
         self.mlp = nn.Sequential(nn.Linear(768, 512))
 
-
         self.input_resolution = input_resolution
 
         self.L2 = nn.functional.normalize
@@ -35,12 +34,11 @@ class GeoCLIP(nn.Module):
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
-        #print(location.shape)
         location_features = self.encode_location(location)
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
-
+        
         # Normalize features
         image_features = image_features / image_features.norm(dim=1, keepdim=True)
         location_features = location_features / location_features.norm(dim=1, keepdim=True)
@@ -56,7 +54,7 @@ class GeoCLIP(nn.Module):
 if __name__ == "__main__":
     # Test vit_model with random input
     image = torch.randn(8, 3, 224, 224)
-    location = torch.randn(20, 3)
+    location = torch.randn(8, 3)
     model = GeoCLIP()
     model.eval()
     with torch.no_grad():
