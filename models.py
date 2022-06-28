@@ -13,8 +13,7 @@ class GeoCLIP(nn.Module):
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         self.location_encoder = nn.Sequential(nn.Linear(3, 1000),
                                               nn.ReLU(),
-                                              nn.Linear(1000, 1000),
-                                              nn.ReLU(),
+                                              nn.Dropout(0.5),
                                               nn.Linear(1000,512)
                                               )
         
