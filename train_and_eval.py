@@ -152,7 +152,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             logits_per_image, logits_per_location = model(imgs, locations)
         
-        probs = logits_per_image.softmax(dim=-1).cpu().numpy()
+        probs = logits_per_image.softmax(dim=-1)
         
         # Predict gps location with the highest probability (index)
         outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
