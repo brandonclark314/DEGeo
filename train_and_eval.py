@@ -72,7 +72,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         loss.backward()
 
         optimizer.step()     
-        #scheduler.step()
+        scheduler.step()
 
         losses.append(loss.item())
 

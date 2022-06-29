@@ -18,11 +18,11 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (2D GPS)'
+    opt.description = 'GeoCLIP-100K (Sdlr)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
-    opt.lr = 5e-5
+    opt.lr = 5e-6
     opt.step_size = 3
 
     opt.batch_size = 256
