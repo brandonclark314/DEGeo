@@ -18,14 +18,14 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (LkR + LRE-3)'
+    opt.description = 'GeoCLIP-100K (2D GPS)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
     opt.lr = 5e-6
     opt.step_size = 3
 
-    opt.batch_size = 512
+    opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
