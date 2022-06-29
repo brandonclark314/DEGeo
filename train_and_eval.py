@@ -136,7 +136,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
     locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
     locations = [toCartesian(x[0], x[1]) for x in locations]
-    locations = np.array(locations)
+    locations = torch.tensor(locations)
 
     preds = []
     targets = []
