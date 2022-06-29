@@ -137,6 +137,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
     locations = [toCartesian(x[0], x[1]) for x in locations]
     locations = torch.tensor(locations)
+    locations = locations.to(opt.device)
 
     preds = []
     targets = []
