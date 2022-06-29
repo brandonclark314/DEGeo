@@ -28,7 +28,8 @@ def getopt():
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'im2gps3k'
+    #opt.testset = 'im2gps3k'
+    opt.testset = 'train3K'
     opt.device = torch.device('cuda')
 
     return opt 

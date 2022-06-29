@@ -155,6 +155,8 @@ class M16Dataset(Dataset):
             fnames, classes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
         if split == 'im2gps3k':
             fnames, classes = get_im2gps3k_test(opt=opt)    
+        if split == 'train3K':
+            fnames, classes = get_mp16_train(classfile="mp16_places365_3K.csv", opt=opt)
         
 
         temp = list(zip(fnames, classes))
