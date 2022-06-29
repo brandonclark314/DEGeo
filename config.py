@@ -18,7 +18,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (Sdlr)'
+    opt.description = 'GeoCLIP-100K (Test)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
@@ -28,8 +28,7 @@ def getopt():
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    #opt.testset = 'im2gps3k'
-    opt.testset = 'train3K'
+    opt.testset = 'im2gps3k'
     opt.device = torch.device('cuda')
 
     return opt 

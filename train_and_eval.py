@@ -134,7 +134,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     
      # Save all the classes (possible locations to predict)
     fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-    locations = list(fine_gps.iloc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
+    locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
     locations = [toCartesian(x[0], x[1]) for x in locations]
     locations = np.array(locations)
 
