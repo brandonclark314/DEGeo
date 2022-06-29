@@ -89,7 +89,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
             wandb.log({"Image Loss": img_loss.item()})
             wandb.log({"GPS Loss": gps_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if val_dataloader != None and i % (val_cycle * 5) == 0:
+        if val_dataloader != None and i % (val_cycle * 10) == 0:
             eval_images(val_dataloader, model, epoch, opt)
     
     print("The loss of epoch", epoch, "was ", np.mean(losses))
@@ -191,31 +191,6 @@ if __name__ == '__main__':
     # Move to Device
     labels = labels.cpu().numpy()
     imgs = imgs.to(opt.device)
-    
-    # # Get predictions (probabilities for each location based on similarity)
-    # with torch.no_grad():
-    #     model.eval()
-    #     logits_per_image, logits_per_location = model(imgs, locations)
-    
-    # probs = logits_per_image.softmax(dim=-1)
-    
-    # # Predict gps location with the highest probability (index)
-    # outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
-    
-    # print("Outputs", outs)
-    
-    # # Save the predictions and targets
-    # targets.append(labels)
-    # preds.append(outs)
-
-    # targets = np.concatenate(targets, axis=0)
-    # preds = np.concatenate(preds, axis=0)
-    
-    # Convert to Latitude and Longitude
-    # targets = [toLatLon(x[0], x[1], x[2]) for x in targets]
-    
-    # for x, y in zip(targets, preds):
-    #     print("Target:", x, "Prediction:", y)
 
     accuracies = []
     for dis in opt.distances:

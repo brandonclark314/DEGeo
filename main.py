@@ -64,4 +64,4 @@ for epoch in range(opt.n_epochs):
         torch.save(model.state_dict(), 'weights/' + opt.description + '_' + str(epoch) + '_' + str(loss) + '.pth')
 
     eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-    scheduler.step()
+    #scheduler.step()
