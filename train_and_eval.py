@@ -5,7 +5,7 @@ import numpy as np
 
 from colorama import Fore, Style
 
-from einops import rearrange
+# from einops import rearrange
 
 import torch
 import torch.nn.functional as F
@@ -72,7 +72,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         loss.backward()
 
         optimizer.step()     
-        scheduler.step()
+        #scheduler.step()
 
         losses.append(loss.item())
 
@@ -97,8 +97,8 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     
 def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train', opt=None):
     if trainset == 'train':
-        coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_4249548.csv")
-        medium_gps = pd.read_csv(opt.resources + "cells_50_2000_images_4249548.csv")
+        # coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_4249548.csv")
+        # medium_gps = pd.read_csv(opt.resources + "cells_50_2000_images_4249548.csv")
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
@@ -116,51 +116,115 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
 
     return correct / total
 
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return [x, y, z]
+
+def toLatLon(x, y, z):
+    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
+    lon = np.arctan2(y, x)
+    return [lat, lon]
+
 def eval_images(val_dataloader, model, epoch, opt):
-
-    data_iterator = val_dataloader
-
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
+    
+     # Save all the classes (possible locations to predict)
+    fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+    locations = list(fine_gps.iloc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
+    locations = [toCartesian(x[0], x[1]) for x in locations]
+    locations = np.array(locations)
 
     preds = []
     targets = []
 
-    for i, (imgs, classes) in bar:
-
-        labels = classes.cpu().numpy()
-
+    model.eval()
+    
+    for i, (imgs, labels) in bar:
+        labels = labels.cpu().numpy()
         imgs = imgs.to(opt.device)
+        
+        # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            outs1, outs2, outs3 = model(imgs)
-        outs = torch.argmax(outs3, dim=-1).detach().cpu().numpy()
-
+            logits_per_image, logits_per_location = model(imgs, locations)
+        
+        probs = logits_per_image.softmax(dim=-1).cpu().numpy()
+        
+        # Predict gps location with the highest probability (index)
+        outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
+        
+        # Save the predictions and targets
         targets.append(labels)
         preds.append(outs)
 
     preds = np.concatenate(preds, axis=0)
     targets = np.concatenate(targets, axis=0)
+    
+    model.train()
 
     accuracies = []
     for dis in opt.distances:
-
         acc = distance_accuracy(targets, preds, dis=dis, trainset=opt.trainset, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 
 if __name__ == '__main__':
+    preds = []
+    targets = []
+    
     opt = getopt()
 
     opt.device = torch.device('cpu')
 
-    model = networks.GeoGuess1(trainset=opt.trainset)
-    model_pairs = model.state_dict()
-
-    pt = torch.load('/home/c3-0/al209167/GeoGuessNet/weights/GeoGuessNet1-4.2M-Im2GPS3k-F*.pth', map_location=opt.device)
+    # Load Model
+    model = models.GeoCLIP()
     
-    for name, weight in pt.items():
-        model_pairs[name] = weight
+    # Generate Random Data
+    locations = torch.randn((1000, 3)) # Possible Locations
+    labels = torch.rand((10, 3)) # Latitude and Longitude
+    imgs = torch.rand((10, 3, 224, 224)) # Images
+    
+    # Move to Device
+    labels = labels.cpu().numpy()
+    imgs = imgs.to(opt.device)
+    
+    # # Get predictions (probabilities for each location based on similarity)
+    # with torch.no_grad():
+    #     model.eval()
+    #     logits_per_image, logits_per_location = model(imgs, locations)
+    
+    # probs = logits_per_image.softmax(dim=-1)
+    
+    # # Predict gps location with the highest probability (index)
+    # outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
+    
+    # print("Outputs", outs)
+    
+    # # Save the predictions and targets
+    # targets.append(labels)
+    # preds.append(outs)
 
-    val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
+    # targets = np.concatenate(targets, axis=0)
+    # preds = np.concatenate(preds, axis=0)
+    
+    # Convert to Latitude and Longitude
+    # targets = [toLatLon(x[0], x[1], x[2]) for x in targets]
+    
+    # for x, y in zip(targets, preds):
+    #     print("Target:", x, "Prediction:", y)
 
-    hierarchical_eval(val_dataloader, model, 0, opt)
+    accuracies = []
+    for dis in opt.distances:
+        acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
+        print("Accuracy", dis, "is", acc)
+        wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
+    
+    
+   
+    
+    
+    
+    

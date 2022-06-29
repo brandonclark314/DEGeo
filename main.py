@@ -29,10 +29,10 @@ wandb.run.name = opt.description
 wandb.save()
 
 train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
-#val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
+val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
-#val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
 
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -54,8 +54,7 @@ for epoch in range(opt.n_epochs):
     if not opt.evaluate:
         _ = model.train()
 
-        loss = train_images(train_dataloader=train_dataloader, model=model, criterion=criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch)
-
+        loss = train_images(train_dataloader=train_dataloader, model=model, criterion=criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
 
     torch.save(model.state_dict(), 'weights/' + opt.description + '.pth')
 
@@ -64,5 +63,5 @@ for epoch in range(opt.n_epochs):
         loss = round(loss, 2)
         torch.save(model.state_dict(), 'weights/' + opt.description + '_' + str(epoch) + '_' + str(loss) + '.pth')
 
-    #eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
     scheduler.step()
