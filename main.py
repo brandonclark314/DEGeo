@@ -34,8 +34,7 @@ val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
 
-#criterion = torch.nn.CrossEntropyLoss()
-criterion = nn.MSELoss()
+criterion = torch.nn.CrossEntropyLoss()
 
 model = models.GeoCLIP()
 

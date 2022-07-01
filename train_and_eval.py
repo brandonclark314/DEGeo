@@ -59,11 +59,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         optimizer.zero_grad()
         img_matrix, gps_matrix = model(imgs, gps)
         
-        #targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-        
-        # Get Targets
-        gps_n = gps / gps.norm(dim=1, keepdim=True)
-        targets = gps_n @ gps_n.t()
+        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
 
         torch.set_printoptions(edgeitems=30)
 
