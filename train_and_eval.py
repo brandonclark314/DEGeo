@@ -40,7 +40,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
     val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 164))
     print("Outputting loss every", val_cycle, "batches")
-    #print("Validating every", val_cycle*5, "batches")
+    print("Validating every", val_cycle*100, "batches")
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
@@ -59,7 +59,11 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         optimizer.zero_grad()
         img_matrix, gps_matrix = model(imgs, gps)
         
-        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        #targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        
+        # Get Targets
+        gps_n = gps / gps.norm(dim=1, keepdim=True)
+        targets = gps_n @ gps_n.t()
 
         torch.set_printoptions(edgeitems=30)
 
@@ -89,7 +93,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
             wandb.log({"Image Loss": img_loss.item()})
             wandb.log({"GPS Loss": gps_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if val_dataloader != None and i % (val_cycle * 10) == 0:
+        if val_dataloader != None and i % (val_cycle * 100) == 0:
             eval_images(val_dataloader, model, epoch, opt)
     
     print("The loss of epoch", epoch, "was ", np.mean(losses))

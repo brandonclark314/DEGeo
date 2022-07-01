@@ -15,19 +15,13 @@ class GeoCLIP(nn.Module):
         self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
         self.location_encoder = nn.Sequential(self.rff_encoding, 
                                               nn.Linear(512, 1024),
-                                              nn.LeakyReLU(),
+                                              nn.ReLU(),
                                               nn.Dropout(0.5),
                                               nn.Linear(1024, 1024),
-                                              nn.LeakyReLU(),
+                                              nn.ReLU(),
                                               nn.Dropout(0.5),
                                               nn.Linear(1024, 1024),
-                                              nn.LeakyReLU(),
-                                              nn.Dropout(0.5),
-                                              nn.Linear(1024, 1024),
-                                              nn.LeakyReLU(),
-                                              nn.Dropout(0.5),
-                                              nn.Linear(1024, 1024),
-                                              nn.LeakyReLU(),
+                                              nn.ReLU(),
                                               nn.Dropout(0.5),
                                               nn.Linear(1024, 512)
                                               )
@@ -59,6 +53,7 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
+        logits_per_image = logit_scale * image_features @ location_features.t()
         logits_per_image = logit_scale * image_features @ location_features.t()
         logits_per_location = logits_per_image.t()
 
