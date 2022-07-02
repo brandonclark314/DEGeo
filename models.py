@@ -12,14 +12,16 @@ class GeoCLIP(nn.Module):
         super().__init__()
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=64)
-        self.location_encoder = nn.Sequential(nn.Linear(3, 512),
-                                              nn.ReLU(),
+        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
+        self.location_encoder = nn.Sequential(self.rff_encoding,
                                               nn.Linear(512, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 512)
                                               )
