@@ -20,8 +20,6 @@ class GeoCLIP(nn.Module):
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
                                               nn.ReLU(),
-                                              nn.Linear(1024, 1024),
-                                              nn.ReLU(),
                                               nn.Linear(1024, 512)
                                               )
         
