@@ -18,7 +18,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (No Fourier)'
+    opt.description = 'GeoCLIP-100K (Img Sim)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
