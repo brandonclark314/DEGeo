@@ -1,3 +1,4 @@
+from cmath import exp
 import time
 from scipy.spatial.distance import cdist
 from sklearn.metrics import accuracy_score, f1_score
@@ -24,6 +25,7 @@ import models
 from config import getopt
 import dataloader
 
+discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
 def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
@@ -59,6 +61,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t()).float()
+        targets = discretize(targets, 1 - 0.1 * np.exp(-epoch/2))
 
         torch.set_printoptions(edgeitems=30)
 
@@ -70,9 +73,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         loss = (img_loss + gps_loss) / 2
 
         loss.backward()
-
-        optimizer.step()     
-        #scheduler.step()
+        optimizer.step()    
 
         losses.append(loss.item())
         running_loss += (loss.item() * batch_size)
