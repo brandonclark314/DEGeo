@@ -64,6 +64,10 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         # Compute the loss
         loss = 0
+        print("img_matrix", img_matrix.shape, img_matrix.dtype)
+        print("gps_matrix", gps_matrix.shape, gps_matrix.dtype)
+        print("img_sim_matrix", img_sim_matrix.shape, img_sim_matrix.dtype)
+        
         img_loss = criterion(img_sim_matrix, targets).float()
         gps_loss = criterion(gps_matrix, targets).float()
 
