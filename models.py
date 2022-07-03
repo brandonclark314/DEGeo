@@ -10,33 +10,24 @@ from rff.layers import GaussianEncoding
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
         super().__init__()
-        
-        self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
-        self.location_encoder = nn.Sequential(self.rff_encoding,
-                                              nn.Linear(512, 1024),
-                                              nn.BatchNorm1d(1024),
-                                              nn.ReLU(),
-                                              nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
-                                              nn.ReLU(),
-                                              nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
-                                              nn.ReLU(),
-                                              nn.Linear(1024, 512)
-                                              )
-        
-        self.mlp = nn.Sequential(nn.Linear(768, 1024),
-                                nn.BatchNorm1d(1024),
-                                nn.ReLU(),
-                                nn.Linear(1024, 1024),
-                                nn.BatchNorm1d(1024),
-                                nn.ReLU(),
-                                nn.Linear(1024, 512))
-
-        self.input_resolution = input_resolution
 
         self.L2 = nn.functional.normalize
+        
+        self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
+        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=600)
+        self.location_encoder = nn.Sequential(self.rff_encoding,
+                                              nn.Linear(1200, 1100),
+                                              nn.ReLU(),
+                                              nn.Linear(1100, 900),
+                                              nn.ReLU(),
+                                              nn.Linear(900, 500),
+                                              self.L2(),
+                                              nn.Linear(500, 128))
+        
+        self.mlp = nn.Sequential(self.L2(),
+                                 nn.Linear(768, 128))
+        
+        self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
     def encode_image(self, image):
