@@ -58,15 +58,24 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
          
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
-        targets = (gps_n @ gps_n.t()).float() ** 3
-        targets = torch.sigmoid(targets)
+        targets = (gps_n @ gps_n.t()).float()
+        
+        # Standardize each row of the targets
+        targets = targets - targets.mean(dim=1, keepdim=True) 
+        targets = targets / targets.std(dim=1, keepdim=True)
+        
+        # Standardize each row of the img_sim_matrix and gps_matrix
+        img_sim_matrix = img_sim_matrix - img_sim_matrix.mean(dim=1, keepdim=True) 
+        img_sim_matrix = img_sim_matrix / img_sim_matrix.std(dim=1, keepdim=True)
+        gps_matrix = gps_matrix - gps_matrix.mean(dim=1, keepdim=True)
+        gps_matrix = gps_matrix / gps_matrix.std(dim=1, keepdim=True)
 
         torch.set_printoptions(edgeitems=30)
 
         # Compute the loss
         loss = 0
-        img_loss = criterion(torch.sigmoid(img_sim_matrix), targets).float()
-        gps_loss = criterion(torch.sigmoid(gps_matrix), targets).float()
+        img_loss = criterion(img_sim_matrix, targets).float()
+        gps_loss = criterion(gps_matrix, targets).float()
 
         loss = (img_loss + gps_loss) / 2
 
@@ -89,7 +98,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
             wandb.log({"Image Loss": img_loss.item()})
             wandb.log({"GPS Loss": gps_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if val_dataloader != None and i % (val_cycle * 100) == 0:
+        if False and val_dataloader != None and i % (val_cycle * 100) == 0:
             eval_images(val_dataloader, model, epoch, opt)
     
     print("The loss of epoch", epoch, "was ", np.mean(losses))

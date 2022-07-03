@@ -15,10 +15,13 @@ class GeoCLIP(nn.Module):
         self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
         self.location_encoder = nn.Sequential(self.rff_encoding,
                                               nn.Linear(512, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 512)
                                               )
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     # image_features = image_features @ image_features.t()
     
     plt.figure(figsize=(10,10))
-    plt.imshow(torch.sigmoid(image_features), cmap='viridis')
+    plt.imshow(image_features, cmap='viridis')
     plt.colorbar()
     plt.show()
     
