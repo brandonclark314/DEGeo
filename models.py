@@ -26,7 +26,13 @@ class GeoCLIP(nn.Module):
                                               nn.Linear(1024, 512)
                                               )
         
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 1024),
+                                nn.BatchNorm1d(1024),
+                                nn.ReLU(),
+                                nn.Linear(1024, 1024),
+                                nn.BatchNorm1d(1024),
+                                nn.ReLU(),
+                                nn.Linear(1024, 512))
 
         self.input_resolution = input_resolution
 

@@ -51,6 +51,7 @@ if not os.path.exists('./weights/'):
 
 best_loss = 10000
 for epoch in range(opt.n_epochs): 
+    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
 
     if not opt.evaluate:
         _ = model.train()
@@ -64,5 +65,4 @@ for epoch in range(opt.n_epochs):
         loss = round(loss, 2)
         torch.save(model.state_dict(), 'weights/' + opt.description + '_' + str(epoch) + '_' + str(loss) + '.pth')
 
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-    #scheduler.step()
+    scheduler.step()

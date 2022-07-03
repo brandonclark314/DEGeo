@@ -15,10 +15,10 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.size = 224
+    opt.size = 324
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (ImSim Sigmoid)'
+    opt.description = 'GeoCLIP-1M (256 1M)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
@@ -27,7 +27,7 @@ def getopt():
 
     opt.batch_size = 64
     opt.distances = [2500, 750, 200, 25, 1]
-    opt.trainset = 'train100K'
+    opt.trainset = 'train1M'
     opt.testset = 'im2gps3k'
     opt.device = torch.device('cuda')
 
