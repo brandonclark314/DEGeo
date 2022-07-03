@@ -65,18 +65,19 @@ if __name__ == "__main__":
     model = GeoCLIP()
     model.eval()
     with torch.no_grad():
-        image_features, location_features = model(image, location)
+        image_features, location_features, img_sim = model(image, location)
         
-    print(image_features.shape)
-    print(location_features.shape)
-    
+    print(image_features.dtype)
+    print(location_features.dtype)
+    print(img_sim.dtype)
+
     # Plot Image features matrix as heatmap
     # image_features = image_features / image_features.norm(dim=1, keepdim=True)
     # image_features = image_features @ image_features.t()
     
-    plt.figure(figsize=(10,10))
-    plt.imshow(image_features, cmap='viridis')
-    plt.colorbar()
-    plt.show()
+    # plt.figure(figsize=(10,10))
+    # plt.imshow(image_features, cmap='viridis')
+    # plt.colorbar()
+    # plt.show()
     
     
