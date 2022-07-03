@@ -8,7 +8,7 @@ def getopt():
     parser = argparse.ArgumentParser()
 
     opt = parser.parse_args()
-    opt.kernels = multiprocessing.cpu_count()
+    opt.kernels = 10
 
     opt.mp16folder = "/squash/MP-16-zstd/resources/images/mp16/"
     opt.im2gps3k = "/home/al209167/datasets/im2gps3ktest/"
@@ -18,7 +18,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (Img Sim)'
+    opt.description = 'GeoCLIP-100K (ImSim Sigmoid)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 

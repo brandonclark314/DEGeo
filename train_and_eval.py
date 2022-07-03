@@ -58,18 +58,15 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
          
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
-        targets = gps_n @ gps_n.t()
+        targets = (gps_n @ gps_n.t()).float() ** 3
+        targets = targets / targets.norm(dim=1, keepdim=True)
 
         torch.set_printoptions(edgeitems=30)
 
         # Compute the loss
         loss = 0
-        print("img_matrix", img_matrix.shape, img_matrix.dtype)
-        print("gps_matrix", gps_matrix.shape, gps_matrix.dtype)
-        print("img_sim_matrix", img_sim_matrix.shape, img_sim_matrix.dtype)
-        
-        img_loss = criterion(img_sim_matrix, targets).float()
-        gps_loss = criterion(gps_matrix, targets).float()
+        img_loss = criterion(torch.sigmoid(img_sim_matrix), targets).float()
+        gps_loss = criterion(torch.sigmoid(gps_matrix), targets).float()
 
         loss = (img_loss + gps_loss) / 2
 
@@ -153,7 +150,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location = model(imgs, locations)
+            logits_per_image, logits_per_location, img_sim_matrix = model(imgs, locations)
         
         probs = logits_per_image.softmax(dim=-1)
         
