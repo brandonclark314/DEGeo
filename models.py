@@ -21,11 +21,10 @@ class GeoCLIP(nn.Module):
                                               nn.Linear(1100, 900),
                                               nn.ReLU(),
                                               nn.Linear(900, 500),
-                                              self.L2(),
+                                              nn.ReLU(),
                                               nn.Linear(500, 128))
         
-        self.mlp = nn.Sequential(self.L2(),
-                                 nn.Linear(768, 128))
+        self.mlp = nn.Sequential(nn.Linear(768, 128))
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
