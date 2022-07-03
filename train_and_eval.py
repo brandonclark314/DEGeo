@@ -61,7 +61,8 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t()).float()
-        targets = discretize(targets, 1 - 0.1 * np.exp(-epoch/2))
+        targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
+        targets = torch.from_numpy(targets).to(opt.device)
 
         torch.set_printoptions(edgeitems=30)
 
