@@ -3,7 +3,7 @@ from transformers import ViTModel, ViTFeatureExtractor
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
+from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
 
@@ -15,13 +15,12 @@ class GeoCLIP(nn.Module):
         self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
         self.location_encoder = nn.Sequential(self.rff_encoding,
                                               nn.Linear(512, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 512)
                                               )
@@ -54,10 +53,11 @@ class GeoCLIP(nn.Module):
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
         logits_per_image = logit_scale * image_features @ location_features.t()
-        logits_per_image = logit_scale * image_features @ location_features.t()
         logits_per_location = logits_per_image.t()
+        
+        image_similarity_matrix = logit_scale * image_features @ image_features.t()
 
-        return logits_per_image, logits_per_location
+        return logits_per_image, logits_per_location, image_similarity_matrix
     
 
 if __name__ == "__main__":
@@ -73,10 +73,11 @@ if __name__ == "__main__":
     print(location_features.shape)
     
     # Plot Image features matrix as heatmap
-    image_features = image_features.cpu().numpy()
+    # image_features = image_features / image_features.norm(dim=1, keepdim=True)
+    # image_features = image_features @ image_features.t()
     
     plt.figure(figsize=(10,10))
-    plt.imshow(image_features, cmap='hot')
+    plt.imshow(image_features, cmap='viridis')
     plt.colorbar()
     plt.show()
     

@@ -46,29 +46,25 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
 
     for i ,(imgs, gps) in bar:
-
         batch_size = imgs.shape[0]
-
-        # labels = torch.Tensor([x for x in range(batch_size)])
-        # labels = labels.type(torch.LongTensor)
-        # labels = labels.to(opt.device)
 
         gps = gps.to(opt.device)
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, gps)
+        img_matrix, gps_matrix, img_sim_matrix = model(imgs, gps)
         
         #targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-        
-        # Get Targets
+         
+        # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = gps_n @ gps_n.t()
 
         torch.set_printoptions(edgeitems=30)
 
+        # Compute the loss
         loss = 0
-        img_loss = criterion(img_matrix, targets)
+        img_loss = criterion(img_sim_matrix, targets)
         gps_loss = criterion(gps_matrix, targets)
 
         loss = (img_loss + gps_loss) / 2
@@ -79,7 +75,6 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         #scheduler.step()
 
         losses.append(loss.item())
-
         running_loss += (loss.item() * batch_size)
         dataset_size += batch_size
 
