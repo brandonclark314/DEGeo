@@ -59,16 +59,6 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t()).float()
-        
-        # Standardize each row of the targets
-        targets = targets - targets.mean(dim=1, keepdim=True) 
-        targets = targets / targets.std(dim=1, keepdim=True)
-        
-        # Standardize each row of the img_sim_matrix and gps_matrix
-        img_sim_matrix = img_sim_matrix - img_sim_matrix.mean(dim=1, keepdim=True) 
-        img_sim_matrix = img_sim_matrix / img_sim_matrix.std(dim=1, keepdim=True)
-        gps_matrix = gps_matrix - gps_matrix.mean(dim=1, keepdim=True)
-        gps_matrix = gps_matrix / gps_matrix.std(dim=1, keepdim=True)
 
         torch.set_printoptions(edgeitems=30)
 

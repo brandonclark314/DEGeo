@@ -56,7 +56,7 @@ class GeoCLIP(nn.Module):
         logits_per_image = logit_scale * image_features @ location_features.t()
         logits_per_location = logits_per_image.t()
         
-        image_similarity_matrix = logit_scale * image_features @ image_features.t()
+        image_similarity_matrix = image_features @ image_features.t()
 
         return logits_per_image, logits_per_location, image_similarity_matrix
     
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # image_features = image_features @ image_features.t()
     
     plt.figure(figsize=(10,10))
-    plt.imshow(image_features, cmap='viridis')
+    plt.imshow(img_sim, cmap='viridis')
     plt.colorbar()
     plt.show()
     
