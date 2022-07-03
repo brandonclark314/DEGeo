@@ -60,7 +60,6 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t()).float() ** 3
         targets = torch.sigmoid(targets)
-        targets = targets / targets.norm(dim=1, keepdim=True)
 
         torch.set_printoptions(edgeitems=30)
 
