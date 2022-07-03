@@ -1,3 +1,4 @@
+from ast import Num
 from cmath import exp
 import time
 from scipy.spatial.distance import cdist
@@ -45,7 +46,9 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     print("Validating every", val_cycle*100, "batches")
     print("Starting Epoch", epoch)
 
-    bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
+    num_batches = len(data_iterator)
+    bar = tqdm(enumerate(data_iterator), total=num_batches)
+    
 
     for i ,(imgs, gps) in bar:
         batch_size = imgs.shape[0]
@@ -61,7 +64,8 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         # Get Targets (GPS Cosine Similarities)
         gps_n = gps / gps.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t())
-        targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
+        
+        targets = discretize(targets.detach().cpu().numpy(), 1 - 0.2 * np.exp(-(epoch + i/num_batches))) 
         targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
