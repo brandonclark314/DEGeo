@@ -54,7 +54,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix, img_sim_matrix = model(imgs, gps)
+        img_matrix, gps_matrix = model(imgs, gps)
         
         targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
          
