@@ -67,12 +67,11 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         # targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
-        
     
         # Compute the loss
         loss = 0
-        img_loss = criterion(img_matrix, targets).float()
-        gps_loss = criterion(gps_matrix, targets).float()
+        img_loss = img_criterion(img_matrix, targets).float()
+        gps_loss = gps_criterion(gps_matrix, targets).float()
 
         loss = (img_loss + gps_loss) / 2
 
