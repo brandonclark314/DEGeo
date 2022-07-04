@@ -156,7 +156,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location, img_sim_matrix = model(imgs, locations)
+            logits_per_image, logits_per_location = model(imgs, locations)
         
         probs = logits_per_image.softmax(dim=-1)
         
