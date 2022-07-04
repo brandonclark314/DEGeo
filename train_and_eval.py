@@ -47,7 +47,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
     
-    data_a, targets_a = bar[0]
+    j, (data_a, targets_a) = next(enumerate(data_iterator))
 
     for i ,(imgs, gps) in bar:
         batch_size = imgs.shape[0]
