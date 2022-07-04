@@ -46,10 +46,15 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
+    
+    img_a = 0
+    tgps_a = 0
 
     for i ,(imgs, gps) in bar:
         if (i == 0):
-            data_a, targets_a = imgs, gps
+            img_a, gps_a = imgs, gps
+            img_a.to(opt.device)
+            gps_a.to(opt.device)
             
         batch_size = imgs.shape[0]
 
@@ -58,12 +63,12 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         optimizer.zero_grad()
         #img_matrix, gps_matrix, img_sim_matrix = model(imgs, gps)
-        img_matrix, gps_matrix, img_sim_matrix = model(data_a, targets_a)
+        img_matrix, gps_matrix, img_sim_matrix = model(img_a, gps_a)
         
         #targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
          
         # Get Targets (GPS Cosine Similarities)
-        gps_n = data_a / data_a.norm(dim=1, keepdim=True)
+        gps_n = gps_a / gps_a.norm(dim=1, keepdim=True)
         targets = (gps_n @ gps_n.t()).float()
         
         # targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
