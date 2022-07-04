@@ -33,7 +33,7 @@ val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCELoss()
 #criterion = nn.MSELoss()
 
 model = models.GeoCLIP()

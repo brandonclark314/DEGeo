@@ -71,7 +71,8 @@ if __name__ == "__main__":
     print(img_sim.dtype)
 
     # Plot Image features matrix as heatmap
-    criterion = torch.nn.BCEWithLogitsLoss()
+    # criterion = torch.nn.BCELoss()
+    criterion = torch.nn.MSELoss()
     
     # Get Targets (GPS Cosine Similarities)
     gps_n = location / location.norm(dim=1, keepdim=True)
