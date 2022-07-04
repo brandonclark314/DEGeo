@@ -15,7 +15,7 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.size = 224
+    opt.size = 324
     opt.n_epochs = 32
 
     opt.description = 'GeoCLIP-500K (Hyper Test)'

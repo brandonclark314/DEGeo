@@ -192,7 +192,7 @@ class M16Dataset(Dataset):
         if self.split in ['train', 'train1M', 'trainbdd'] :
             return vid, torch.Tensor(self.classes[idx]).to(torch.float64)
         else:
-            return vid, torch.Tensor(self.classes[idx])
+            return vid, torch.Tensor(self.classes[idx]).to(torch.float64)
 
     def __len__(self):
         return len(self.data)

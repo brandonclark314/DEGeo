@@ -14,7 +14,6 @@ from config import getopt
 
 opt = getopt()
 
-
 config = {
     'learning_rate' : opt.lr,
     'epochs' : opt.n_epochs,
@@ -31,8 +30,8 @@ wandb.save()
 train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
 val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
 gps_criterion = torch.nn.CrossEntropyLoss()
@@ -52,6 +51,7 @@ if not os.path.exists('./weights/'):
 
 best_loss = 10000
 for epoch in range(opt.n_epochs): 
+    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
 
     if not opt.evaluate:
         _ = model.train()
@@ -65,5 +65,4 @@ for epoch in range(opt.n_epochs):
         loss = round(loss, 2)
         torch.save(model.state_dict(), 'weights/' + opt.description + '_' + str(epoch) + '_' + str(loss) + '.pth')
 
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-    #scheduler.step()
+    scheduler.step()
