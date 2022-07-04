@@ -68,6 +68,11 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         torch.set_printoptions(edgeitems=30)
         
+        # Scale to [0, 1]
+        img_matrix = (img_matrix + 1) / 2
+        gps_matrix = (gps_matrix + 1) / 2
+        targets = (targets + 1) / 2
+
         # Compute the loss
         loss = 0
         img_loss = criterion(img_matrix, targets).float()
