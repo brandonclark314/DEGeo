@@ -16,15 +16,15 @@ class GeoCLIP(nn.Module):
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=600)
         self.location_encoder = nn.Sequential(self.rff_encoding,
-                                              nn.Linear(1200, 1100),
+                                              nn.Linear(1200, 1000),
                                               nn.ReLU(),
-                                              nn.Linear(1100, 800),
+                                              nn.Linear(1000, 800),
                                               nn.ReLU(),
-                                              nn.Linear(800, 500),
+                                              nn.Linear(800, 600),
                                               nn.ReLU(),
-                                              nn.Linear(500, 128))
+                                              nn.Linear(600, 10))
         
-        self.mlp = nn.Sequential(nn.Linear(768, 128))
+        self.mlp = nn.Sequential(nn.Linear(768, 10))
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
@@ -68,7 +68,8 @@ if __name__ == "__main__":
     print(location_features.dtype)
 
     # Plot Image features matrix as heatmap
-    criterion = torch.nn.CrossEntropyLoss()
+    # criterion = torch.nn.BCELoss()
+    criterion = torch.nn.MSELoss()
     
     # Get Targets (GPS Cosine Similarities)
     gps_n = location / location.norm(dim=1, keepdim=True)
