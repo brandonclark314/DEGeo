@@ -34,12 +34,13 @@ val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
 
-# criterion = nn.CrossEntropyLoss()
+#criterion = nn.CrossEntropyLoss()
 criterion = nn.MSELoss()
 
 model = models.GeoCLIP()
 
 optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-3, weight_decay=0.2)
+#optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.98), eps=1e-3, weight_decay=0.2)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
