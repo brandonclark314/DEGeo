@@ -48,7 +48,7 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
     
     img_a = 0
-    tgps_a = 0
+    gps_a = 0
 
     for i ,(imgs, gps) in bar:
         if (i == 0):
