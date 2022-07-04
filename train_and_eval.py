@@ -46,10 +46,11 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
-    
-    j, (data_a, targets_a) = next(enumerate(data_iterator))
 
     for i ,(imgs, gps) in bar:
+        if (i == 0):
+            data_a, targets_a = imgs, gps
+            
         batch_size = imgs.shape[0]
 
         gps = gps.to(opt.device)
