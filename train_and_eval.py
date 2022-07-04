@@ -25,7 +25,7 @@ from config import getopt
 import dataloader
 
 
-def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
+def train_images(train_dataloader, model, img_criterion, gps_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -49,10 +49,6 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
 
         batch_size = imgs.shape[0]
 
-        # labels = torch.Tensor([x for x in range(batch_size)])
-        # labels = labels.type(torch.LongTensor)
-        # labels = labels.to(opt.device)
-
         gps = gps.to(opt.device)
         imgs = imgs.to(opt.device)
 
@@ -60,19 +56,21 @@ def train_images(train_dataloader, model, criterion, optimizer, scheduler, opt, 
         img_matrix, gps_matrix = model(imgs, gps)
         
         targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        # gps_n = gps / gps.norm(dim=1, keepdim=True)
+        # targets = gps_n @ gps_n.t()
 
         torch.set_printoptions(edgeitems=30)
 
         loss = 0
-        img_loss = criterion(img_matrix, targets)
-        gps_loss = criterion(gps_matrix, targets)
+        img_loss = img_criterion(img_matrix, targets)
+        gps_loss = gps_criterion(gps_matrix, targets)
 
         loss = (img_loss + gps_loss) / 2
 
         loss.backward()
 
         optimizer.step()     
-        #scheduler.step()
+        # scheduler.step()
 
         losses.append(loss.item())
 
@@ -103,15 +101,16 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
 
-    course_preds = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
-    course_target = [(x[0], x[1]) for x in targets]   
+    predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
+    ground_truth = [(x[0], x[1]) for x in targets]   
 
-    total = len(course_target)
+    total = len(ground_truth)
     correct = 0
 
-    for i in range(len(course_target)):
-        #print(GD(course_preds[i], course_target[i]).km)
-        if GD(course_preds[i], course_target[i]).km <= dis:
+    for i in range(len(ground_truth)):
+        #print(GD(predictions[i], ground_truth[i]).km)
+        #print(f'Ground Truth: {ground_truth[i]}, Prediction: {predictions[i]}')
+        if GD(predictions[i], ground_truth[i]).km <= dis:
             correct += 1
 
     return correct / total
@@ -180,9 +179,20 @@ if __name__ == '__main__':
 
     opt.device = torch.device('cpu')
 
+    # Setting this low for testing
+    opt.batch_size = 4
+
     # Load Model
     model = models.GeoCLIP()
+
+    # Create val dataloader for testing
+    val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=False, drop_last=False)
     
+    # Run evaluation code
+    eval_images(val_dataloader, model, 0, opt)
+    exit()
+
     # Generate Random Data
     locations = torch.randn((1000, 3)) # Possible Locations
     labels = torch.rand((10, 3)) # Latitude and Longitude
