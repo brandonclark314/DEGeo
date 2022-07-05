@@ -14,8 +14,28 @@ class GeoCLIP(nn.Module):
         self.L2 = nn.functional.normalize
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
-        self.location_encoder = nn.Sequential(self.rff_encoding,
+        self.rff_encoding1 = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
+        self.rff_encoding2 = GaussianEncoding(sigma=2.0, input_size=3, encoded_size=256)
+        self.rff_encoding3 = GaussianEncoding(sigma=1.0, input_size=3, encoded_size=256)
+        self.location_encoder1 = nn.Sequential(self.rff_encoding1,
+                                              nn.Linear(512, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 512))
+        
+        self.location_encoder2 = nn.Sequential(self.rff_encoding2,
+                                              nn.Linear(512, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 1024),
+                                              nn.ReLU(),
+                                              nn.Linear(1024, 512))
+        
+        self.location_encoder3 = nn.Sequential(self.rff_encoding3,
                                               nn.Linear(512, 1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
@@ -34,22 +54,28 @@ class GeoCLIP(nn.Module):
         
     def encode_location(self, location):
         location = location.float()
-        return self.location_encoder(location)
+        return [self.location_encoder1(location),
+                self.location_encoder2(location),
+                self.location_encoder3(location)]
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
-        location_features = self.encode_location(location)
+        location_features1, location_features2, location_features3 = self.encode_location(location)
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         
         # Normalize features
         image_features = image_features / image_features.norm(dim=1, keepdim=True)
-        location_features = location_features / location_features.norm(dim=1, keepdim=True)
+        location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
+        location_features2 = location_features2 / location_features2.norm(dim=1, keepdim=True)
+        location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
-        logits_per_image = logit_scale * image_features @ location_features.t()
+        logits_per_image = logit_scale * ((image_features @ location_features1.t()) * \
+                                          (image_features @ location_features2.t()) * \
+                                          (image_features @ location_features3.t()))
         logits_per_location = logits_per_image.t()
 
         return logits_per_image, logits_per_location
