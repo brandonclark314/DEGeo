@@ -68,6 +68,11 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.w1 = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.w2 = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.w3 = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.w4 = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.w5 = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
     def encode_image(self, image):
         return self.image_encoder(image)
@@ -99,11 +104,18 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
-        logits_per_image = logit_scale * ((image_features @ location_features1.t()) * \
-                                          (image_features @ location_features2.t()) * \
-                                          (image_features @ location_features3.t()) * \
-                                          (image_features @ location_features4.t()) * \
-                                          (image_features @ location_features5.t()))
+        w1 = self.w1.exp()
+        w2 = self.w2.exp()
+        w3 = self.w3.exp()
+        w4 = self.w4.exp()
+        w5 = self.w5.exp()
+        W = (w1 + w2 + w3 + w4 + w5)
+        
+        logits_per_image = logit_scale * ((w1 * image_features @ location_features1.t()) + \
+                                          (w2 * image_features @ location_features2.t()) + \
+                                          (w3 * image_features @ location_features3.t()) + \
+                                          (w4 * image_features @ location_features4.t()) + \
+                                          (w4 * image_features @ location_features5.t())) / W  
         logits_per_location = logits_per_image.t()
 
         return logits_per_image, logits_per_location
