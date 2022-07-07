@@ -27,7 +27,7 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
-def train_images(train_dataloader, model, img_criterion, gps_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
+def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -47,15 +47,18 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
 
-    for i ,(imgs, gps) in bar:
+    for i ,(imgs, gps, scenes) in bar:
         batch_size = imgs.shape[0]
 
         gps = gps.to(opt.device)
         imgs = imgs.to(opt.device)
+        
+        scene_labels = scenes[:, 0]
+        scene_labels = scene_labels.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix, img_sim_matrix = model(imgs, gps)
-        
+        img_matrix, gps_matrix, img_sim_matrix, scene_pred = model(imgs, gps)
+
         targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
          
         # Get Targets (GPS Cosine Similarities)
@@ -71,10 +74,13 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
     
         # Compute the loss
         loss = 0
-        img_loss = criterion(img_matrix, targets).float()
-        gps_loss = criterion(gps_matrix, targets).float()
-
-        loss = (img_loss + gps_loss) / 2
+        img_loss = img_criterion(img_matrix, targets).float()
+        gps_loss = img_criterion(gps_matrix, targets).float()
+        if opt.scene:
+            scene_loss = scene_criterion(scene_pred, scene_labels).float()
+            loss = (img_loss + gps_loss + scene_loss) / 3
+        else:
+            loss = (img_loss + gps_loss) / 2
 
         loss.backward()
 
@@ -94,6 +100,8 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
             wandb.log({"Training Loss" : loss.item()})
             wandb.log({"Image Loss": img_loss.item()})
             wandb.log({"GPS Loss": gps_loss.item()})
+            if opt.scene:
+                wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
         if False and val_dataloader != None and i % (val_cycle * 100) == 0:
             eval_images(val_dataloader, model, epoch, opt)
@@ -151,13 +159,13 @@ def eval_images(val_dataloader, model, epoch, opt):
 
     model.eval()
     
-    for i, (imgs, labels) in bar:
+    for i, (imgs, labels, scenes) in bar:
         labels = labels.cpu().numpy()
         imgs = imgs.to(opt.device)
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location, img_sim_matrix = model(imgs, locations)
+            logits_per_image, logits_per_location, img_sim_matrix, scene_pred = model(imgs, locations)
         
         probs = logits_per_image.softmax(dim=-1)
         

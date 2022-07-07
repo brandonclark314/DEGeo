@@ -18,9 +18,10 @@ def getopt():
     opt.size = 324
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-500K (Hyper Test)'
+    opt.description = 'GeoCLIP-500K (Scheduler Test)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
+    opt.scene = False
 
     opt.lr = 1e-2
     opt.step_size = 3
@@ -31,4 +32,4 @@ def getopt():
     opt.testset = 'im2gps3k'
     opt.device = torch.device('cuda')
 
-    return opt 
+    return opt

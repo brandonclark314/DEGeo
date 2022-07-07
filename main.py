@@ -34,9 +34,9 @@ train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.bat
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
-gps_criterion = torch.nn.CrossEntropyLoss()
+scene_criterion = torch.nn.CrossEntropyLoss()
 
-model = models.GeoCLIP()
+model = models.GeoCLIP(opt=opt)
 
 optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
 

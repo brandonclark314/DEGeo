@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 from os.path import exists
 
 from config import getopt
+from tqdm import tqdm
 
 def toCartesian(latitude, longitude):
     lat = latitude * np.pi / 180
@@ -75,29 +76,31 @@ def m16_val_transform():
 
 def get_mp16_train(classfile=None, opt=None, cartesian_coords=True):
 
-    class_info = open(opt.resources + classfile).read().splitlines()[1:]
+    class_info = pd.read_csv(opt.resources + classfile)
 
     #print("The classes should have been", class_info['34/8d/9055806529.jpg'])
     base_folder = opt.mp16folder
 
     fnames = []
-    classes = []
+    coords = []
+    scenes = []
 
-    for row in class_info:
-        filename = base_folder + row.split(',')[0]
+    for row in tqdm(class_info.iterrows()):
+        filename = base_folder + row[1]['IMG_ID']
         if exists(filename):
             fnames.append(filename)
             
-            latitude = float(row.split(',')[2])
-            longitude = float(row.split(',')[3])
-                             
+            latitude = float(row[1]['LAT'])
+            longitude = float(row[1]['LON'])
+            
+            scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
             if cartesian_coords:
-                classes.append(toCartesian(latitude, longitude))
+                coords.append(toCartesian(latitude, longitude))
             else:
-                classes.append([latitude, longitude])
+                coords.append([latitude, longitude])
     
 
-    return fnames, classes
+    return fnames, coords, scenes
 
 def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_coords=False):
 
@@ -105,7 +108,8 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
     base_folder = opt.im2gps3k
 
     fnames = []
-    classes = []
+    coords = []
+    scenes = []
 
     for row in class_info.iterrows():
         filename = base_folder + row[1]['IMG_ID']
@@ -115,15 +119,17 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
             latitude = float(row[1]['LAT'])
             longitude = float(row[1]['LON'])
             #print(row[1]['LAT'])
-    
+
+            scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
+
             if cartesian_coords:
-                classes.append(toCartesian(latitude, longitude))
+                coords.append(toCartesian(latitude, longitude))
             else:
-                classes.append([latitude, longitude])
+                coords.append([latitude, longitude])
                 
     
     #print(classes)
-    return fnames, classes
+    return fnames, coords, scenes
 
 def read_frames(fname, one_frame=False):
     path = glob.glob(fname + '/*.jpg')
@@ -146,23 +152,23 @@ class M16Dataset(Dataset):
         
         self.split = split 
         if split == 'train':
-            fnames, classes = get_mp16_train(opt=opt)
+            fnames, coords, scenes = get_mp16_train(opt=opt)
         if split == 'train1M':
-            fnames, classes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
+            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
         if split == 'train500K':
-            fnames, classes = get_mp16_train(classfile="mp16_places365_500K.csv", opt=opt)
+            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_500K.csv", opt=opt)
         if split == 'train100K':
-            fnames, classes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
+            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
         if split == 'im2gps3k':
-            fnames, classes = get_im2gps3k_test(opt=opt)    
+            fnames, coords, scenes = get_im2gps3k_test(opt=opt)    
         if split == 'train3K':
-            fnames, classes = get_mp16_train(classfile="mp16_places365_3K.csv", opt=opt)
+            fnames, coords = get_mp16_train(classfile="mp16_places365_3K.csv", opt=opt)
         
 
-        temp = list(zip(fnames, classes))
+        temp = list(zip(fnames, coords, scenes))
         np.random.shuffle(temp)
-        self.fnames, self.classes = zip(*temp)
-        self.fnames, self.classes = list(self.fnames), list(self.classes)
+        self.fnames, self.coords, self.scenes = zip(*temp)
+        self.fnames, self.coords, self.scenes = list(self.fnames), list(self.coords), list(self.scenes)
 
         self.data = self.fnames
 
@@ -173,7 +179,7 @@ class M16Dataset(Dataset):
             self.transform = m16_val_transform()
 
     def __getitem__(self, idx):
-
+        
         #print(self.data[0])
         sample = self.data[idx]
         '''
@@ -185,14 +191,15 @@ class M16Dataset(Dataset):
         else:
             vid, coords = read_frames(sample, self.one_frame)
         '''
-        vid = im.open(sample).convert('RGB')
-        vid = self.transform(vid)
+        img = im.open(sample).convert('RGB')
+        img = self.transform(img)
 
-        #print(self.classes[idx])
+
+        #print(self.coords[idx])
         if self.split in ['train', 'train1M', 'trainbdd'] :
-            return vid, torch.Tensor(self.classes[idx]).to(torch.float64)
+            return img, torch.Tensor(self.coords[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
         else:
-            return vid, torch.Tensor(self.classes[idx]).to(torch.float64)
+            return img, torch.Tensor(self.coords[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
 
     def __len__(self):
         return len(self.data)
@@ -206,7 +213,9 @@ if __name__ == "__main__":
     dataset = M16Dataset(split='train100K', opt=opt)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=10, num_workers=10, shuffle=False, drop_last=False)
 
-    for i, (img, classes) in enumerate(dataloader):
+    bar = tqdm(enumerate(dataloader), total = len(dataloader))
+    for i, (img, coords, scenes) in bar:
         print(img.shape)
-        print(classes.shape)
+        print(coords.shape)
+        print(scenes.shape)
         break

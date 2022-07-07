@@ -8,26 +8,31 @@ import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
 
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224):
+    def __init__(self,  input_resolution=224. opt=None):
         super().__init__()
 
         self.L2 = nn.functional.normalize
+
+        self.opt = opt
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=600)
+        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
         self.location_encoder = nn.Sequential(self.rff_encoding,
-                                              nn.Linear(1200, 1000),
+                                              nn.Linear(512, 1024),
                                               nn.ReLU(),
-                                              nn.Linear(1000, 800),
+                                              nn.Linear(1024, 1024),
                                               nn.ReLU(),
-                                              nn.Linear(800, 600),
+                                              nn.Linear(1024, 1024),
                                               nn.ReLU(),
-                                              nn.Linear(600, 10))
+                                              nn.Linear(1024, 512))
         
-        self.mlp = nn.Sequential(nn.Linear(768, 10))
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+
+        if self.opt.scene:
+            self.scene_predictor = nn.Linear(512, 3)
         
     def encode_image(self, image):
         return self.image_encoder(image)
@@ -42,6 +47,10 @@ class GeoCLIP(nn.Module):
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
+
+        scene_preds = None
+        if self.opt.scene:
+            scene_preds = self.scene_predictor(image_features)
         
         # Normalize features
         image_features = image_features / image_features.norm(dim=1, keepdim=True)
@@ -54,7 +63,7 @@ class GeoCLIP(nn.Module):
         
         image_similarity_matrix = image_features @ image_features.t()
 
-        return logits_per_image, logits_per_location, image_similarity_matrix
+        return logits_per_image, logits_per_location, image_similarity_matrix, scene_preds
     
 
 if __name__ == "__main__":
