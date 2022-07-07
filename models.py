@@ -60,8 +60,6 @@ class GeoCLIP(nn.Module):
         logit_scale = self.logit_scale.exp()
         logits_per_image = logit_scale * image_features @ location_features.t()
         logits_per_location = logits_per_image.t()
-        
-        image_similarity_matrix = image_features @ image_features.t()
 
         return logits_per_image, logits_per_location, image_similarity_matrix, scene_preds
     
@@ -73,11 +71,10 @@ if __name__ == "__main__":
     model = GeoCLIP()
     model.eval()
     with torch.no_grad():
-        image_features, location_features, img_sim = model(image, location)
+        image_features, location_features = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
-    print(img_sim.dtype)
 
     # Plot Image features matrix as heatmap
     # criterion = torch.nn.BCELoss()
@@ -101,7 +98,7 @@ if __name__ == "__main__":
     print(loss)
     
     plt.figure(figsize=(10,10))
-    plt.imshow(img_sim, cmap='viridis')
+    plt.imshow(image_features, cmap='viridis')
     plt.colorbar()
     plt.show()
     

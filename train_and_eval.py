@@ -70,7 +70,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
-        
     
         # Compute the loss
         loss = 0
