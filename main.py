@@ -22,7 +22,7 @@ config = {
 }
 
 wandb.init(project='DEGeo', 
-        entity='brandonclark314',
+        entity='vicentevivan',
         config=config)
 wandb.run.name = opt.description
 wandb.save()
@@ -44,7 +44,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, 
 
 _ = model.to(opt.device)
 wandb.watch(model, img_criterion, log="all")
-wandb.watch(model, gps_criterion, log="all")
 
 if not os.path.exists('./weights/'):
     os.mkdir('./weights/')
@@ -56,7 +55,7 @@ for epoch in range(opt.n_epochs):
     if not opt.evaluate:
         _ = model.train()
 
-        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, gps_criterion=gps_criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
+        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
 
     torch.save(model.state_dict(), 'weights/' + opt.description + '.pth')
 
