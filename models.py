@@ -6,12 +6,13 @@ import torch.nn.functional as F
 from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
-from siren.siren_pytorch import SirenNet
+import torchvision.transforms as T
 
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
         super().__init__()
 
+        self.img_augmentation = T.RandAugment()
         self.L2 = nn.functional.normalize
         self.Earth_Diameter = 12742 # km
         
@@ -56,6 +57,7 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_feat = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
     def encode_image(self, image):
         return self.image_encoder(image)
@@ -70,6 +72,9 @@ class GeoCLIP(nn.Module):
         image_features = self.encode_image(image).last_hidden_state
         location_features1, location_features2, \
         location_features3 = self.encode_location(location)
+        
+        # Augmented Image
+        image_aug_features = self.encode_image(self.img_augmentation(image))
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
@@ -82,14 +87,17 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
+        logit_scale_feat = self.logit_scale_feat.exp()
         
         logits_per_image = logit_scale * ((image_features @ location_features1.t()) * \
                                           (image_features @ location_features2.t()) * \
                                           (image_features @ location_features3.t()))
           
         logits_per_location = logits_per_image.t()
+        
+        image_similarity = logit_scale_feat * (image_features @ image_aug_features.t())
 
-        return logits_per_image, logits_per_location
+        return logits_per_image, logits_per_location. image_similarity
     
 
 if __name__ == "__main__":

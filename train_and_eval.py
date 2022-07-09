@@ -54,7 +54,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         imgs = imgs.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, gps)
+        img_matrix, gps_matrix, image_similarity = model(imgs, gps)
         
         targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
          
@@ -72,8 +72,9 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         loss = 0
         img_loss = img_criterion(img_matrix, targets).float()
         gps_loss = gps_criterion(gps_matrix, targets).float()
+        img_sim_loss = img_criterion(image_similarity, targets).float()
 
-        loss = (img_loss + gps_loss) / 2
+        loss = (img_loss + gps_loss + img_sim_loss) / 3
 
         loss.backward()
 
@@ -156,7 +157,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location = model(imgs, locations)
+            logits_per_image, logits_per_location, image_similarity = model(imgs, locations)
         
         probs = logits_per_image.softmax(dim=-1)
         
