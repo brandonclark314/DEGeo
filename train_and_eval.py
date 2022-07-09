@@ -74,7 +74,11 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         gps_loss = gps_criterion(gps_matrix, targets).float()
         img_sim_loss = img_criterion(image_similarity, targets).float()
 
-        loss = (img_loss + gps_loss) / 2 + img_sim_loss / 3
+        if epoch == 0 and i < 200:
+            loss = (img_loss + gps_loss) / 2
+            
+        else: 
+            loss = (img_loss + gps_loss) / 2 + img_sim_loss / 3
 
         loss.backward()
 

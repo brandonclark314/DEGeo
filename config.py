@@ -22,7 +22,7 @@ def getopt():
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
-    opt.lr = 1e-1
+    opt.lr = 1e-2
     opt.step_size = 3
 
     opt.batch_size = 32
