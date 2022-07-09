@@ -104,9 +104,13 @@ class GeoCLIP(nn.Module):
           
         logits_per_location = logits_per_image.t()
         
-        image_similarity = logit_scale_feat * (image_features @ image_aug_features.t())
+        logits_per_image_aug = logit_scale * ((image_aug_features @ location_features1.t()) * \
+                                              (image_aug_features @ location_features2.t()) * \
+                                              (image_aug_features @ location_features3.t()))
+         
+        logits_sim = logits_per_image @ logits_per_image_aug.t()
 
-        return logits_per_image, logits_per_location, image_similarity
+        return logits_per_image, logits_per_location, logits_sim
     
 
 if __name__ == "__main__":
