@@ -74,7 +74,9 @@ class GeoCLIP(nn.Module):
         location_features3 = self.encode_location(location)
         
         # Augmented Image
-        image_aug_features = self.encode_image(self.img_augmentation(image))[:,0,:]
+        augmented_image = self.img_augmentation(image)
+        image_aug_features = self.encode_image(augmented_image).last_hidden_state
+        image_aug_features = image_aug_features[:,0,:]
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
