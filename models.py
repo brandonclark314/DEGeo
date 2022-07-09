@@ -76,6 +76,7 @@ class GeoCLIP(nn.Module):
         # Augmented Image
         augmented_image = self.img_augmentation(image)
         image_aug_features = self.encode_image(augmented_image).last_hidden_state
+        image_aug_features = self.mlp(image_aug_features)
         image_aug_features = image_aug_features[:,0,:]
 
         image_features = image_features[:,0,:]
