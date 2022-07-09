@@ -15,8 +15,8 @@ class GeoCLIP(nn.Module):
         self.img_augmentation = T.Compose([ T.Resize((224,224)),
                                             T.ColorJitter(hue=.05, saturation=.05),
                                             T.RandomHorizontalFlip(),
+                                            T.AutoAugment(T.AutoAugmentPolicy.IMAGENET),
                                             T.RandomPerspective(distortion_scale=0.6, p=1.0),
-                                            T.RandomSolarize(threshold=192.0),
                                             T.RandomAutocontrast()
                                             ])
         self.L2 = nn.functional.normalize
