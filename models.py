@@ -88,6 +88,8 @@ class GeoCLIP(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         
+        image_features_f = (image_features + image_aug_features) / 2
+        
         # Normalize features
         image_features = image_features / image_features.norm(dim=1, keepdim=True)
         location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
@@ -96,21 +98,14 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
-        logit_scale_feat = self.logit_scale_feat.exp()
         
-        logits_per_image = logit_scale * ((image_features @ location_features1.t()) * \
-                                          (image_features @ location_features2.t()) * \
-                                          (image_features @ location_features3.t()))
+        logits_per_image = logit_scale * ((image_features_f @ location_features1.t()) * \
+                                          (image_features_f @ location_features2.t()) * \
+                                          (image_features_f @ location_features3.t()))
           
         logits_per_location = logits_per_image.t()
-        
-        logits_per_image_aug = logit_scale * ((image_aug_features @ location_features1.t()) * \
-                                              (image_aug_features @ location_features2.t()) * \
-                                              (image_aug_features @ location_features3.t()))
-         
-        logits_sim = logits_per_image @ logits_per_image_aug.t()
 
-        return logits_per_image, logits_per_location, logits_sim
+        return logits_per_image, logits_per_location
     
 
 if __name__ == "__main__":
