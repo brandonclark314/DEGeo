@@ -94,6 +94,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
             wandb.log({"Training Loss" : loss.item()})
             wandb.log({"Image Loss": img_loss.item()})
             wandb.log({"GPS Loss": gps_loss.item()})
+            wandb.log({"Image Similarity Loss": img_sim_loss.item()})
             #print("interation", i, "of", len(data_iterator))
         if False and val_dataloader != None and i % (val_cycle * 100) == 0:
             eval_images(val_dataloader, model, epoch, opt)
