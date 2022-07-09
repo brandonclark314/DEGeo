@@ -74,7 +74,7 @@ class GeoCLIP(nn.Module):
         location_features3 = self.encode_location(location)
         
         # Augmented Image
-        image_aug_features = self.encode_image(self.img_augmentation(image))
+        image_aug_features = self.encode_image(self.img_augmentation(image))[:,0,:]
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     model = GeoCLIP()
     model.eval()
     with torch.no_grad():
-        image_features, location_features = model(image, location)
+        image_features, location_features, image_similarity = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
