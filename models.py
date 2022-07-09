@@ -16,7 +16,7 @@ class GeoCLIP(nn.Module):
                                             T.ColorJitter(hue=.05, saturation=.05),
                                             T.RandomHorizontalFlip(),
                                             T.AutoAugment(T.AutoAugmentPolicy.IMAGENET),
-                                            T.RandomPerspective(distortion_scale=0.6, p=1.0),
+                                            T.RandomPerspective(distortion_scale=0.6),
                                             T.RandomAutocontrast()
                                             ])
         self.L2 = nn.functional.normalize
