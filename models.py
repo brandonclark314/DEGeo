@@ -12,7 +12,13 @@ class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
         super().__init__()
 
-        self.img_augmentation = T.RandAugment()
+        self.img_augmentation = T.Compose([ T.Resize((224,224)),
+                                            T.ColorJitter(hue=.05, saturation=.05),
+                                            T.RandomHorizontalFlip(),
+                                            T.RandomPerspective(distortion_scale=0.6, p=1.0),
+                                            T.RandomSolarize(threshold=192.0),
+                                            T.RandomAutocontrast()
+                                            ])
         self.L2 = nn.functional.normalize
         self.Earth_Diameter = 12742 # km
         
