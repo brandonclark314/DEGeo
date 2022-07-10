@@ -90,7 +90,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         # Compute the loss
         loss = 0
         img_loss = img_criterion(img_matrix, targets).float()
-        gps_loss = gps_criterion(gps_matrix, targets.t()).float()
+        gps_loss = gps_criterion(gps_matrix.t(), targets).float()
 
         loss = (img_loss + gps_loss) / 2
 
