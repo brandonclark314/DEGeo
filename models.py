@@ -84,9 +84,9 @@ class GeoCLIP(nn.Module):
         logit_scale = self.logit_scale.exp()
         
         # Get probabilities (similarities) from each encoder
-        p1 = image_features @ location_features1.t()
-        p2 = image_features @ location_features2.t()
-        p3 = image_features @ location_features3.t()
+        p1 = nn.Sigmoid(image_features @ location_features1.t())
+        p2 = nn.Sigmoid(image_features @ location_features2.t())
+        p3 = nn.Sigmoid(image_features @ location_features3.t())
         
         P = 1/(1+(1/p1 - 1)*(1/p2 - 1)*(1/p3 - 1))
         
