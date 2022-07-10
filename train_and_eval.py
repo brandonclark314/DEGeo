@@ -78,7 +78,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         loss.backward()
 
         optimizer.step()     
-        scheduler.step()
+        # scheduler.step()
 
         losses.append(loss.item())
         running_loss += (loss.item() * batch_size)
