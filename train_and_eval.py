@@ -78,7 +78,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         loss.backward()
 
         optimizer.step()     
-        # scheduler.step()
+        scheduler.step()
 
         losses.append(loss.item())
         running_loss += (loss.item() * batch_size)
@@ -88,7 +88,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
 
         bar.set_postfix(Epoch=epoch, Train_Loss=epoch_loss,
                         LR=optimizer.param_groups[0]['lr'])
-        
+     
         if i % val_cycle == 0:
             wandb.log({"Training Loss" : loss.item()})
             wandb.log({"Image Loss": img_loss.item()})
