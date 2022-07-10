@@ -27,29 +27,41 @@ class GeoCLIP(nn.Module):
         
         self.location_encoder1 = nn.Sequential(self.rff_encoding1,
                                               nn.Linear(512, 1024),
+                                              nn.BatchNorm1d(1024),
+                                              nn.ReLU()
+                                              nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
-                                              nn.Linear(1024, 1024),
-                                              nn.ReLU(),
+                                              nn.BatchNorm1d(1024),
                                               nn.Linear(1024, 512))
         
         self.location_encoder2 = nn.Sequential(self.rff_encoding2,
                                               nn.Linear(512, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
+                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
+                                              nn.BatchNorm1d(1024),
                                               nn.Linear(1024, 512))
         
         self.location_encoder3 = nn.Sequential(self.rff_encoding3,
                                                 nn.Linear(512, 1024),
+                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
+                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
+                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
+                                                nn.BatchNorm1d(1024),
                                                 nn.Linear(1024, 512))
         
         self.mlp = nn.Sequential(nn.Linear(768, 512))
