@@ -22,7 +22,7 @@ config = {
 }
 
 wandb.init(project='DEGeo', 
-        entity='brandonclark314',
+        entity='vicentevivan',
         config=config)
 wandb.run.name = opt.description
 wandb.save()

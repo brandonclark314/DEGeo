@@ -26,37 +26,28 @@ class GeoCLIP(nn.Module):
         
         self.location_encoder1 = nn.Sequential(self.rff_encoding1,
                                               nn.Linear(512, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 512))
         
         self.location_encoder2 = nn.Sequential(self.rff_encoding2,
                                               nn.Linear(512, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
-                                              nn.BatchNorm1d(1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 512))
         
         self.location_encoder3 = nn.Sequential(self.rff_encoding3,
                                                 nn.Linear(512, 1024),
-                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
-                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
-                                                nn.BatchNorm1d(1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 512))
         
@@ -91,9 +82,14 @@ class GeoCLIP(nn.Module):
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
         
-        logits_per_image = logit_scale * ((image_features @ location_features1.t()) * \
-                                          (image_features @ location_features2.t()) * \
-                                          (image_features @ location_features3.t()))
+        # Get probabilities (similarities) from each encoder
+        p1 = image_features @ location_features1.t()
+        p2 = image_features @ location_features2.t()
+        p3 = image_features @ location_features3.t()
+        
+        P = 1/(1+(1/p1 - 1)*(1/p2 - 1)*(1/p3 - 1))
+        
+        logits_per_image = logit_scale * P
           
         logits_per_location = logits_per_image.t()
 
