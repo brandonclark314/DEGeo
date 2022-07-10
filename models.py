@@ -6,7 +6,6 @@ import torch.nn.functional as F
 from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
-from siren.siren_pytorch import SirenNet
 
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
@@ -28,7 +27,7 @@ class GeoCLIP(nn.Module):
         self.location_encoder1 = nn.Sequential(self.rff_encoding1,
                                               nn.Linear(512, 1024),
                                               nn.BatchNorm1d(1024),
-                                              nn.ReLU()
+                                              nn.ReLU(),
                                               nn.Linear(1024, 1024),
                                               nn.BatchNorm1d(1024),
                                               nn.ReLU(),
