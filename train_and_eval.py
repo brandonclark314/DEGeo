@@ -27,6 +27,26 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else 0)
 
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+
+toCartesianVec = np.vectorize(toCartesian)
+
+def toLatLon(x, y, z):
+    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
+    lon = np.arctan2(y, x)
+    return [lat, lon]
+
+def getRandomCoordinates(num_coords):
+    coords = 2 * torch.rand(num_coords, 3) - 1
+    coords = coords / coords.norm(dim=1, keepdim=True)
+    return coords
+
 def train_images(train_dataloader, model, img_criterion, gps_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
@@ -34,6 +54,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
     tt_batch = time.time()
 
     data_iterator = train_dataloader 
+    gps_multiplier = model.GPS_Aug_Multiplier
 
     losses = []
     running_loss = 0.0
@@ -52,33 +73,30 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
 
         gps = gps.to(opt.device)
         imgs = imgs.to(opt.device)
+        
+        # Add extra GPS Coordinates
+        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
+        gps_aug = torch.cat((gps, extra_gps), dim=0)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, gps)
+        img_matrix, gps_matrix = model(imgs, gps_aug)
         
-        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-         
-        # Get Targets (GPS Cosine Similarities)
-        # gps_n = gps / gps.norm(dim=1, keepdim=True)
-        # targets = (gps_n @ gps_n.t())
-        
-        # targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
-        # targets = discretize(targets.detach().cpu().numpy(), 0.927)
-        # targets = torch.from_numpy(targets).to(opt.device).float()
+        # Define Targets [(Identity matrix) | (Zero matrix)]
+        targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
+                                                                batch_size * gps_multiplier)), dim=1).to(opt.device)
 
         torch.set_printoptions(edgeitems=30)
     
         # Compute the loss
         loss = 0
         img_loss = img_criterion(img_matrix, targets).float()
-        gps_loss = gps_criterion(gps_matrix, targets).float()
+        gps_loss = gps_criterion(gps_matrix, targets.t()).float()
 
         loss = (img_loss + gps_loss) / 2
 
         loss.backward()
 
         optimizer.step()     
-        # scheduler.step()
 
         losses.append(loss.item())
         running_loss += (loss.item() * batch_size)
@@ -121,19 +139,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
             correct += 1
 
     return correct / total
-
-def toCartesian(latitude, longitude):
-    lat = latitude * np.pi / 180
-    lon = longitude * np.pi / 180
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-    return [x, y, z]
-
-def toLatLon(x, y, z):
-    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
-    lon = np.arctan2(y, x)
-    return [lat, lon]
 
 def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))

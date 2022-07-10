@@ -12,6 +12,7 @@ class GeoCLIP(nn.Module):
         super().__init__()
 
         self.L2 = nn.functional.normalize
+        self.GPS_Aug_Multiplier = 4
         self.Earth_Diameter = 12742 # km
         
         # Sigma Values (1km, 200km, 2500km)
