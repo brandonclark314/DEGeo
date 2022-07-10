@@ -23,7 +23,7 @@ class GeoCLIP(nn.Module):
                                          out_size=512,
                                          n_layers=4,
                                          input_scale=1,
-                                         weight_scale=64)
+                                         weight_scale=2**13)
         
         self.mlp = nn.Sequential(nn.Linear(768, 512))
         
