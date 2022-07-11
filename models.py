@@ -56,7 +56,7 @@ class GeoCLIP(nn.Module):
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 512))
                                                 
-        self.location_encoder2 = nn.Sequential(self.rff_encoding4,
+        self.location_encoder4 = nn.Sequential(self.rff_encoding4,
                                                 nn.Linear(512, 1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
@@ -65,7 +65,7 @@ class GeoCLIP(nn.Module):
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 512))
         
-        self.location_encoder3 = nn.Sequential(self.rff_encoding5,
+        self.location_encoder5 = nn.Sequential(self.rff_encoding5,
                                                 nn.Linear(512, 1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 1024),
