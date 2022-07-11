@@ -91,8 +91,8 @@ class GeoCLIP(nn.Module):
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
-        location_features1, location_features2, \
-        location_features3, location_features4, location_features5 = self.encode_location(location)
+        location_features1, location_features2, location_features3, 
+        location_features4, location_features5 = self.encode_location(location)
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
@@ -102,7 +102,7 @@ class GeoCLIP(nn.Module):
         location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
         location_features2 = location_features2 / location_features2.norm(dim=1, keepdim=True)
         location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
-         location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
+        location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
         location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
 
         # Cosine similarity as logits
