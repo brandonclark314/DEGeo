@@ -79,7 +79,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         #gps_aug = torch.cat((gps, extra_gps), dim=0)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, gps_aug)
+        img_matrix, gps_matrix = model(imgs, gps)
         
         # Define Targets [(Identity matrix) | (Zero matrix)]
         #targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
