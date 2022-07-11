@@ -53,7 +53,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         gps = gps.to(opt.device)
         imgs = imgs.to(opt.device)
         
-        scene_labels = scenes[:, 0]
+        scene_labels = scenes[:, 1]
         scene_labels = scene_labels.to(opt.device)
 
         optimizer.zero_grad()

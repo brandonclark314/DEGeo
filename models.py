@@ -32,7 +32,7 @@ class GeoCLIP(nn.Module):
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
 
         if self.opt.scene:
-            self.scene_predictor = nn.Linear(512, 3)
+            self.scene_predictor = nn.Linear(512, 16)
         
     def encode_image(self, image):
         return self.image_encoder(image)
