@@ -15,7 +15,7 @@ class GeoCLIP(nn.Module):
         self.Earth_Diameter = 12742 # km
         
         # Sigma Values (1km, 200km, 2500km)
-        sigma = self.Earth_Diameter / (3 * 1)
+        sigma = self.Earth_Diameter / (3 * 25)
 
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         self.rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=1024)
