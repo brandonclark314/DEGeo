@@ -91,7 +91,7 @@ class GeoCLIP(nn.Module):
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
-        location_features1, location_features2, location_features3, 
+        location_features1, location_features2, location_features3, \ 
         location_features4, location_features5 = self.encode_location(location)
 
         image_features = image_features[:,0,:]
