@@ -1,6 +1,6 @@
 import csv
 
-from geopy.geocoders import Nominatim
+# from geopy.geocoders import Nominatim
 
 from torch.utils.data import Dataset
 
