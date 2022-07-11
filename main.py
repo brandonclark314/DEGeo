@@ -23,7 +23,7 @@ config = {
 
 wandb.init(project='DEGeo', 
         entity='vicentevivan',
-        config=config)
+        config=config, settings=wandb.Settings(start_method='fork'))
 wandb.run.name = opt.description
 wandb.save()
 
