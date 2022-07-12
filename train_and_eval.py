@@ -85,7 +85,7 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         #targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
         #                                                        batch_size * gps_multiplier)), dim=1).to(opt.device)
 
-        targets = torch.eye(batch_size)
+        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
         
         torch.set_printoptions(edgeitems=30)
     
