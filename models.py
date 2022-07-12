@@ -16,12 +16,13 @@ class GeoCLIP(nn.Module):
         self.Earth_Diameter = 12742 # km
         
         # Sigma Values (1km, 200km, 2500km)
-        sigma1 = self.Earth_Diameter / (3 * 0.5)
-        sigma2 = self.Earth_Diameter / (3 * 1)
-        sigma3 = self.Earth_Diameter / (3 * 25)
-        sigma4 = self.Earth_Diameter / (3 * 200)
-        sigma5 = self.Earth_Diameter / (3 * 750)
-        sigma6 = self.Earth_Diameter / (3 * 2500) 
+        sigma1 = self.Earth_Diameter / (3 * 0.25)
+        sigma2 = self.Earth_Diameter / (3 * 0.5)
+        sigma3 = self.Earth_Diameter / (3 * 1)
+        sigma4 = self.Earth_Diameter / (3 * 25)
+        sigma5 = self.Earth_Diameter / (3 * 200)
+        sigma6 = self.Earth_Diameter / (3 * 750)
+        sigma7 = self.Earth_Diameter / (3 * 2500) 
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         self.rff_encoding1 = GaussianEncoding(sigma=sigma1, input_size=3, encoded_size=256)
@@ -30,6 +31,7 @@ class GeoCLIP(nn.Module):
         self.rff_encoding4 = GaussianEncoding(sigma=sigma4, input_size=3, encoded_size=256)
         self.rff_encoding5 = GaussianEncoding(sigma=sigma5, input_size=3, encoded_size=256)
         self.rff_encoding6 = GaussianEncoding(sigma=sigma6, input_size=3, encoded_size=256)
+        self.rff_encoding7 = GaussianEncoding(sigma=sigma7, input_size=3, encoded_size=256)
         
         self.location_encoder1 = nn.Sequential(self.rff_encoding1,
                                                 nn.Linear(512, 1024),
@@ -84,6 +86,15 @@ class GeoCLIP(nn.Module):
                                                 nn.Linear(1024, 1024),
                                                 nn.ReLU(),
                                                 nn.Linear(1024, 512))
+        
+        self.location_encoder7 = nn.Sequential(self.rff_encoding7,
+                                                nn.Linear(512, 1024),
+                                                nn.ReLU(),
+                                                nn.Linear(1024, 1024),
+                                                nn.ReLU(),
+                                                nn.Linear(1024, 1024),
+                                                nn.ReLU(),
+                                                nn.Linear(1024, 512))
 
         self.mlp = nn.Sequential(nn.Linear(768, 512))
         self.input_resolution = input_resolution
@@ -99,11 +110,15 @@ class GeoCLIP(nn.Module):
                 self.location_encoder3(location),
                 self.location_encoder4(location),
                 self.location_encoder5(location),
-                self.location_encoder6(location)]
+                self.location_encoder6(location),
+                self.location_encoder7(location)]
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state
-        location_features1, location_features2, location_features3, location_features4, location_features5, location_features6 = self.encode_location(location)
+        location_features1, location_features2, \
+        location_features3, location_features4, \
+        location_features5, location_features6, \
+        location_features7 = self.encode_location(location)
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
@@ -116,6 +131,7 @@ class GeoCLIP(nn.Module):
         location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
         location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
         location_features6 = location_features6 / location_features6.norm(dim=1, keepdim=True)
+        location_features7 = location_features7 / location_features7.norm(dim=1, keepdim=True)
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
@@ -129,13 +145,15 @@ class GeoCLIP(nn.Module):
         p4 = s(image_features @ location_features4.t())
         p5 = s(image_features @ location_features5.t())
         p6 = s(image_features @ location_features6.t())
+        p7 = s(image_features @ location_features7.t())
         
         P = 1 / (1 + (1 / p1 - 1) * \
                      (1 / p2 - 1) * \
                      (1 / p3 - 1) * \
                      (1 / p4 - 1) * \
                      (1 / p5 - 1) * \
-                     (1 / p6 - 1))
+                     (1 / p6 - 1) * \
+                     (1 / p7 - 1))
         
         logits_per_image = logit_scale * P
           
