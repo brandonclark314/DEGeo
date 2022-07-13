@@ -75,17 +75,17 @@ def train_images(train_dataloader, model, img_criterion, gps_criterion, optimize
         imgs = imgs.to(opt.device)
         
         # Add extra GPS Coordinates
-        #extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
-        #gps_aug = torch.cat((gps, extra_gps), dim=0)
+        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
+        gps_aug = torch.cat((gps, extra_gps), dim=0)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix = model(imgs, gps)
+        img_matrix, gps_matrix = model(imgs, gps_aug)
         
         # Define Targets [(Identity matrix) | (Zero matrix)]
-        #targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
-        #                                                        batch_size * gps_multiplier)), dim=1).to(opt.device)
+        targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
+                                                               batch_size * gps_multiplier)), dim=1).to(opt.device)
 
-        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        # targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
         
         torch.set_printoptions(edgeitems=30)
     
