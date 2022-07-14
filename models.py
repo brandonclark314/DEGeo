@@ -25,7 +25,7 @@ class GeoCLIP(nn.Module):
         super().__init__()
 
         self.L2 = nn.functional.normalize
-        self.GPS_Aug_Multiplier = 8
+        self.GPS_Aug_Multiplier = 4
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
 
