@@ -29,21 +29,15 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
 
-        self.location_encoder0 = getLocationEncoder(0)
-        self.location_encoder1 = getLocationEncoder(1)
-        self.location_encoder2 = getLocationEncoder(2)
-        self.location_encoder3 = getLocationEncoder(3)
-        self.location_encoder4 = getLocationEncoder(4)
-        self.location_encoder5 = getLocationEncoder(5)
-        self.location_encoder6 = getLocationEncoder(6)
-        self.location_encoder7 = getLocationEncoder(7)
-        self.location_encoder8 = getLocationEncoder(8)
-        self.location_encoder9 = getLocationEncoder(9)
-        self.location_encoder10 = getLocationEncoder(10)
-        self.location_encoder11 = getLocationEncoder(11)
-        self.location_encoder12 = getLocationEncoder(12)
-        self.location_encoder13 = getLocationEncoder(13)
-        self.location_encoder14 = getLocationEncoder(14)
+        self.location_encoder0 = getLocationEncoder(1)
+        self.location_encoder1 = getLocationEncoder(2)
+        self.location_encoder2 = getLocationEncoder(4)
+        self.location_encoder3 = getLocationEncoder(6)
+        self.location_encoder4 = getLocationEncoder(8)
+        self.location_encoder5 = getLocationEncoder(10)
+        self.location_encoder6 = getLocationEncoder(12)
+        self.location_encoder7 = getLocationEncoder(14)
+
 
         self.mlp = nn.Sequential(nn.Linear(768, 512))
         self.input_resolution = input_resolution
@@ -61,22 +55,13 @@ class GeoCLIP(nn.Module):
                 self.location_encoder4(location),
                 self.location_encoder5(location),
                 self.location_encoder6(location),
-                self.location_encoder7(location),
-                self.location_encoder8(location),
-                self.location_encoder9(location),
-                self.location_encoder10(location),
-                self.location_encoder11(location),
-                self.location_encoder12(location),
-                self.location_encoder13(location),
-                self.location_encoder14(location)]
+                self.location_encoder7(location)]
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state 
         location_features0, location_features1, location_features2, \
         location_features3, location_features4, location_features5, \
-        location_features6, location_features7, location_features8, \
-        location_features9, location_features10, location_features11, \
-        location_features12, location_features13, location_features14 = self.encode_location(location)
+        location_features6, location_features7 = self.encode_location(location)
 
 
         image_features = image_features[:,0,:]
@@ -92,13 +77,6 @@ class GeoCLIP(nn.Module):
         location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
         location_features6 = location_features6 / location_features6.norm(dim=1, keepdim=True)
         location_features7 = location_features7 / location_features7.norm(dim=1, keepdim=True)
-        location_features8 = location_features8 / location_features8.norm(dim=1, keepdim=True)
-        location_features9 = location_features9 / location_features9.norm(dim=1, keepdim=True)
-        location_features10 = location_features10 / location_features10.norm(dim=1, keepdim=True)
-        location_features11 = location_features11 / location_features11.norm(dim=1, keepdim=True)
-        location_features12 = location_features12 / location_features12.norm(dim=1, keepdim=True)
-        location_features13 = location_features13 / location_features13.norm(dim=1, keepdim=True)
-        location_features14 = location_features14 / location_features14.norm(dim=1, keepdim=True)
 
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
@@ -114,13 +92,6 @@ class GeoCLIP(nn.Module):
         p5 = s(image_features @ location_features5.t())
         p6 = s(image_features @ location_features6.t())
         p7 = s(image_features @ location_features7.t())
-        p8 = s(image_features @ location_features8.t())
-        p9 = s(image_features @ location_features9.t())
-        p10 = s(image_features @ location_features10.t())
-        p11 = s(image_features @ location_features11.t())
-        p12 = s(image_features @ location_features12.t())
-        p13 = s(image_features @ location_features13.t())
-        p14 = s(image_features @ location_features14.t())
         
         P = 1 / (1 + (1 / p0 - 1) * \
                      (1 / p1 - 1) * \
@@ -129,14 +100,7 @@ class GeoCLIP(nn.Module):
                      (1 / p4 - 1) * \
                      (1 / p5 - 1) * \
                      (1 / p6 - 1) * \
-                     (1 / p7 - 1) * \
-                     (1 / p8 - 1) * \
-                     (1 / p9 - 1) * \
-                     (1 / p10 - 1) * \
-                     (1 / p11 - 1) * \
-                     (1 / p12 - 1) * \
-                     (1 / p13 - 1) * \
-                     (1 / p14 - 1))
+                     (1 / p7 - 1))
         
         logits_per_image = logit_scale * P
           

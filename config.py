@@ -18,7 +18,7 @@ def getopt():
     opt.size = 324
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-100K (Penta)'
+    opt.description = 'GeoCLIP-100K (7 Enc)'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
 
