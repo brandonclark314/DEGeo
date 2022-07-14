@@ -99,8 +99,7 @@ class GeoCLIP(nn.Module):
                      (1 / p3 - 1) * \
                      (1 / p4 - 1) * \
                      (1 / p5 - 1) * \
-                     (1 / p6 - 1) * \
-                     (1 / p7 - 1))
+                     (1 / p6 - 1))
         
         logits_per_image = logit_scale * P
           
