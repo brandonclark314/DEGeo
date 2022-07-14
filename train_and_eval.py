@@ -62,7 +62,7 @@ def getRandomCoordinates(num_coords):
         
         while not globe.is_land(lat, lon):
             gps = 2 * np.random.rand(3) - 1
-            gps = gps / gps.norm(dim=1, keepdim=True)
+            gps = gps / np.linalg.norm(gps)
             lat, lon = toLatLon(gps[0], gps[1], gps[2])
             
         coords.append(gps)
