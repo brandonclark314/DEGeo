@@ -54,7 +54,8 @@ class GeoCLIP(nn.Module):
         
     def encode_location(self, location):
         location = location.float()
-        return [self.location_encoder1(location),
+        return [self.location_encoder0(location),
+                self.location_encoder1(location),
                 self.location_encoder2(location),
                 self.location_encoder3(location),
                 self.location_encoder4(location),
@@ -70,17 +71,20 @@ class GeoCLIP(nn.Module):
                 self.location_encoder14(location)]
                                              
     def forward(self, image, location):
-        image_features = self.encode_image(image).last_hidden_state
-        location_features1, location_features2, \
-        location_features3, location_features4, \
-        location_features5, location_features6, \
-        location_features7 = self.encode_location(location)
+        image_features = self.encode_image(image).last_hidden_state 
+        location_features0, location_features1, location_features2, \
+        location_features3, location_features4, location_features5, \
+        location_features6, location_features7, location_features8, \
+        location_features9, location_features10, location_features11, \
+        location_features12, location_features13, location_features14 = self.encode_location(location)
+
 
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         
         # Normalize features
         image_features = image_features / image_features.norm(dim=1, keepdim=True)
+        location_features0 = location_features1 / location_features1.norm(dim=1, keepdim=True)
         location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
         location_features2 = location_features2 / location_features2.norm(dim=1, keepdim=True)
         location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
@@ -102,6 +106,7 @@ class GeoCLIP(nn.Module):
         s = nn.Sigmoid()
         
         # Get probabilities (similarities) from each encoder
+        p0 = s(image_features @ location_features0.t())
         p1 = s(image_features @ location_features1.t())
         p2 = s(image_features @ location_features2.t())
         p3 = s(image_features @ location_features3.t())
@@ -117,7 +122,8 @@ class GeoCLIP(nn.Module):
         p13 = s(image_features @ location_features13.t())
         p14 = s(image_features @ location_features14.t())
         
-        P = 1 / (1 + (1 / p1 - 1) * \
+        P = 1 / (1 + (1 / p0 - 1) * \
+                     (1 / p1 - 1) * \
                      (1 / p2 - 1) * \
                      (1 / p3 - 1) * \
                      (1 / p4 - 1) * \
