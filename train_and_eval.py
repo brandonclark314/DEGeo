@@ -25,7 +25,31 @@ import models
 from config import getopt
 import dataloader
 
-discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+
+toCartesianVec = np.vectorize(toCartesian)
+
+def toLatLon(x, y, z):
+    # Unit sphere to GPS
+    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
+    lon = np.arctan2(y, x)
+    
+    # Go to degrees
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    
+    return [lat, lon]
+
+def getRandomCoordinates(num_coords):
+    coords = 2 * torch.rand(num_coords, 3) - 1
+    coords = coords / coords.norm(dim=1, keepdim=True)
+    return coords
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
@@ -34,6 +58,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     tt_batch = time.time()
 
     data_iterator = train_dataloader 
+    gps_multiplier = model.GPS_Aug_Multiplier
 
     losses = []
     running_loss = 0.0
@@ -58,24 +83,18 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         imgs = imgs.to(opt.device)
         
-        scene_labels = scenes[:, 1]
-        scene_labels = scene_labels.to(opt.device)
-
+        # Add extra GPS Coordinates
+        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
+        gps_aug = torch.cat((gps, extra_gps), dim=0)
+        
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred = model(imgs, gps)
-            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+            img_matrix, gps_matrix = model(imgs, gps_aug)
+            targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
+                                                                    batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
             out = model(imgs)
-         
-        # Get Targets (GPS Cosine Similarities)
-        # gps_n = gps / gps.norm(dim=1, keepdim=True)
-        # targets = (gps_n @ gps_n.t())
-        
-        # targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
-        # targets = discretize(targets.detach().cpu().numpy(), 0.927)
-        # targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
     
@@ -83,19 +102,12 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
-            gps_loss = img_criterion(gps_matrix, targets).float()
+            gps_loss = img_criterion(gps_matrix.t(), targets).float()
         
-            if opt.scene:
-                scene_loss = scene_criterion(scene_pred, scene_labels).float()
-                loss = (img_loss + gps_loss + scene_loss) / 3
-            else:
-                loss = (img_loss + gps_loss) / 2
+            loss = (img_loss + gps_loss) / 2
+            
         if opt.traintype == 'Classification':
             loss = img_criterion(out, classes)
-
-            if opt.scene:
-                loss += scene_criterion(scene_pred)
-                loss = loss/2
 
         loss.backward()
 
@@ -118,8 +130,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
-            if opt.scene:
-                wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
         if False and val_dataloader != None and i % (val_cycle * 100) == 0:
             if opt.hier_eval:
