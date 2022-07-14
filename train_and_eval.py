@@ -42,8 +42,14 @@ def toCartesian(latitude, longitude):
 toCartesianVec = np.vectorize(toCartesian)
 
 def toLatLon(x, y, z):
+    # Unit sphere to GPS
     lat = np.arctan2(z, np.sqrt(x**2 + y**2))
     lon = np.arctan2(y, x)
+    
+    # Go to degrees
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    
     return [lat, lon]
 
 # def getRandomCoordinates(num_coords):
