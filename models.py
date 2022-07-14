@@ -54,7 +54,7 @@ class GeoCLIP(nn.Module):
                 self.location_encoder4(location),
                 self.location_encoder5(location),
                 self.location_encoder6(location),
-                self.lcation_encoder7(location)]
+                self.location_encoder7(location)]
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state 
