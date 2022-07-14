@@ -77,12 +77,13 @@ def m16_val_transform():
 def get_mp16_train(classfile=None, opt=None, cartesian_coords=True):
 
     class_info = pd.read_csv(opt.resources + classfile)
+    data = json.load(open('/home/c3-0/al209167/datasets/Resources/mp16_places365_mapping_h3.json','r'))
 
     #print("The classes should have been", class_info['34/8d/9055806529.jpg'])
     base_folder = opt.mp16folder
 
     fnames = []
-    coords = []
+    classes = []
     scenes = []
 
     for row in tqdm(class_info.iterrows()):
@@ -94,13 +95,20 @@ def get_mp16_train(classfile=None, opt=None, cartesian_coords=True):
             longitude = float(row[1]['LON'])
             
             scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
-            if cartesian_coords:
-                coords.append(toCartesian(latitude, longitude))
-            else:
-                coords.append([latitude, longitude])
-    
+            if opt.traintype ==  'CLIP':
+                if cartesian_coords:
+                    classes.append(toCartesian(latitude, longitude))
+                else:
+                    classes.append([latitude, longitude])
+            if opt.traintype == 'Classification':
+                # Some imgs don't have classes, its not too many to make a difference
+                try:
+                    classes.append(data[row[1]['IMG_ID']])
+                except:
+                    fnames = fnames[:-1]
+                    scenes = scenes[:-1]
 
-    return fnames, coords, scenes
+    return fnames, classes, scenes
 
 def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_coords=False):
 
@@ -108,7 +116,7 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
     base_folder = opt.im2gps3k
 
     fnames = []
-    coords = []
+    classes = []
     scenes = []
 
     for row in class_info.iterrows():
@@ -123,26 +131,54 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
             scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
 
             if cartesian_coords:
-                coords.append(toCartesian(latitude, longitude))
+                classes.append(toCartesian(latitude, longitude))
             else:
-                coords.append([latitude, longitude])
+                classes.append([latitude, longitude])
                 
     
     #print(classes)
-    return fnames, coords, scenes
+    return fnames, classes, scenes
+
+def get_yfcc26k_test(classfile="yfcc25600_places365.csv", opt=None, cartesian_coords=False):
+    class_info = pd.read_csv(opt.resources + classfile)
+    base_folder = opt.yfcc26k
+
+    fnames = []
+    classes = []
+    scenes = []
+
+    for row in class_info.iterrows():
+        filename = base_folder + row[1]['IMG_ID']
+        if exists(filename):
+            fnames.append(filename)
+            
+            latitude = float(row[1]['LAT'])
+            longitude = float(row[1]['LON'])
+            #print(row[1]['LAT'])
+
+            scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
+
+            if cartesian_coords:
+                classes.append(toCartesian(latitude, longitude))
+            else:
+                classes.append([latitude, longitude])
+    
+    print("test")
+    return fnames, classes, scenes
+
 
 def read_frames(fname, one_frame=False):
     path = glob.glob(fname + '/*.jpg')
     
     vid = []
-    coords = []
+    classes = []
     for img in path:
         buffer = im.open(img).convert('RGB')
-        coords.append(list(float(c) for c in (img.split("/")[-1][3:-4].split("_"))))
+        classes.append(list(float(c) for c in (img.split("/")[-1][3:-4].split("_"))))
         vid.append(buffer)
         if one_frame:
             break
-    return vid, coords
+    return vid, classes
 
 class M16Dataset(Dataset):
 
@@ -152,23 +188,34 @@ class M16Dataset(Dataset):
         
         self.split = split 
         if split == 'train':
-            fnames, coords, scenes = get_mp16_train(opt=opt)
+            fnames, classes, scenes = get_mp16_train(opt=opt)
         if split == 'train1M':
-            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
+            fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
         if split == 'train500K':
-            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_500K.csv", opt=opt)
+            fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_500K.csv", opt=opt)
         if split == 'train100K':
-            fnames, coords, scenes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
+            fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_100K.csv", opt=opt)
         if split == 'im2gps3k':
-            fnames, coords, scenes = get_im2gps3k_test(opt=opt)    
+            fnames, classes, scenes = get_im2gps3k_test(opt=opt)    
         if split == 'train3K':
-            fnames, coords = get_mp16_train(classfile="mp16_places365_3K.csv", opt=opt)
+            fnames, classes = get_mp16_train(classfile="mp16_places365_3K.csv", opt=opt)
+        if split == 'yfcc26k':
+            fnames, classes, scenes = get_yfcc26k_test(classfile="yfcc25600_places365.csv", opt=opt)
         
+        if opt.hier_eval:
+            maps = pickle.load(open("/home/c3-0/al209167/datasets/Resources/class_map.p", "rb"))
+            self.coarse2medium = maps[0]
+            self.medium2fine = maps[1]
 
-        temp = list(zip(fnames, coords, scenes))
+            self.medium2fine[929] = 0
+            self.medium2fine[3050] = 0
+        
+        print(fnames[0])
+
+        temp = list(zip(fnames, classes, scenes))
         np.random.shuffle(temp)
-        self.fnames, self.coords, self.scenes = zip(*temp)
-        self.fnames, self.coords, self.scenes = list(self.fnames), list(self.coords), list(self.scenes)
+        self.fnames, self.classes, self.scenes = zip(*temp)
+        self.fnames, self.classes, self.scenes = list(self.fnames), list(self.classes), list(self.scenes)
 
         self.data = self.fnames
 
@@ -183,23 +230,23 @@ class M16Dataset(Dataset):
         #print(self.data[0])
         sample = self.data[idx]
         '''
-        coords = []
+        classes = []
         if not self.one_frame:
-            vid, coords = read_frames(sample)
+            vid, classes = read_frames(sample)
             vid = vid[:15]
-            coords = coords[:15]
+            classes = classes[:15]
         else:
-            vid, coords = read_frames(sample, self.one_frame)
+            vid, classes = read_frames(sample, self.one_frame)
         '''
         img = im.open(sample).convert('RGB')
         img = self.transform(img)
 
 
-        #print(self.coords[idx])
+        #print(self.classes[idx])
         if self.split in ['train', 'train1M', 'trainbdd'] :
-            return img, torch.Tensor(self.coords[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
+            return img, torch.Tensor(self.classes[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
         else:
-            return img, torch.Tensor(self.coords[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
+            return img, torch.Tensor(self.classes[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
 
     def __len__(self):
         return len(self.data)
@@ -214,8 +261,8 @@ if __name__ == "__main__":
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=10, num_workers=10, shuffle=False, drop_last=False)
 
     bar = tqdm(enumerate(dataloader), total = len(dataloader))
-    for i, (img, coords, scenes) in bar:
+    for i, (img, classes, scenes) in bar:
         print(img.shape)
-        print(coords.shape)
+        print(classes.shape)
         print(scenes.shape)
         break

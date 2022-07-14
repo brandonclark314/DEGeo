@@ -47,19 +47,27 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
 
-    for i ,(imgs, gps, scenes) in bar:
+    for i ,(imgs, classes, scenes) in bar:
         batch_size = imgs.shape[0]
 
-        gps = gps.to(opt.device)
+        if opt.traintype == 'CLIP':
+            gps = classes.to(opt.device)
+        if opt.traintype == 'Classification':
+            classes = classes[:,2].type(torch.LongTensor)
+            classes = classes.to(opt.device)
+        
         imgs = imgs.to(opt.device)
         
         scene_labels = scenes[:, 0]
         scene_labels = scene_labels.to(opt.device)
 
         optimizer.zero_grad()
-        img_matrix, gps_matrix, img_sim_matrix, scene_pred = model(imgs, gps)
-
-        targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        
+        if opt.traintype == 'CLIP':
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps)
+            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+        if opt.traintype == 'Classification':
+            out = model(imgs)
          
         # Get Targets (GPS Cosine Similarities)
         # gps_n = gps / gps.norm(dim=1, keepdim=True)
@@ -73,13 +81,21 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     
         # Compute the loss
         loss = 0
-        img_loss = img_criterion(img_matrix, targets).float()
-        gps_loss = img_criterion(gps_matrix, targets).float()
-        if opt.scene:
-            scene_loss = scene_criterion(scene_pred, scene_labels).float()
-            loss = (img_loss + gps_loss + scene_loss) / 3
-        else:
-            loss = (img_loss + gps_loss) / 2
+        if opt.traintype == 'CLIP':
+            img_loss = img_criterion(img_matrix, targets).float()
+            gps_loss = img_criterion(gps_matrix, targets).float()
+        
+            if opt.scene:
+                scene_loss = scene_criterion(scene_pred, scene_labels).float()
+                loss = (img_loss + gps_loss + scene_loss) / 3
+            else:
+                loss = (img_loss + gps_loss) / 2
+        if opt.traintype == 'Classification':
+            loss = img_criterion(out, classes)
+
+            if opt.scene:
+                loss += scene_criterion(scene_pred)
+                loss = loss/2
 
         loss.backward()
 
@@ -96,14 +112,20 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                         LR=optimizer.param_groups[0]['lr'])
         
         if i % val_cycle == 0:
-            wandb.log({"Training Loss" : loss.item()})
-            wandb.log({"Image Loss": img_loss.item()})
-            wandb.log({"GPS Loss": gps_loss.item()})
+            if opt.traintype == 'CLIP':
+                wandb.log({"Training Loss" : loss.item()})
+                wandb.log({"Image Loss": img_loss.item()})
+                wandb.log({"GPS Loss": gps_loss.item()})
+            if opt.traintype == 'Classification':
+                wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
         if False and val_dataloader != None and i % (val_cycle * 100) == 0:
-            eval_images(val_dataloader, model, epoch, opt)
+            if opt.hier_eval:
+                eval_images_weighted(val_dataloader, model, epoch, opt)
+            else:
+                eval_images(val_dataloader, model, epoch, opt)
     
     print("The loss of epoch", epoch, "was ", np.mean(losses))
     return np.mean(losses)
@@ -164,8 +186,10 @@ def eval_images(val_dataloader, model, epoch, opt):
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location, img_sim_matrix, scene_pred = model(imgs, locations)
-        
+            if opt.traintype == 'CLIP':
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
+            if opt.traintype == 'Classification':
+                logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
         
         # Predict gps location with the highest probability (index)
@@ -185,6 +209,66 @@ def eval_images(val_dataloader, model, epoch, opt):
         acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
+
+def eval_images_weighted(val_dataloader, model, epoch, opt):
+    #return
+
+    data_iterator = val_dataloader
+
+    bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
+
+    preds = []
+    targets = []
+
+    for i, (imgs, classes) in bar:
+
+        labels = classes.cpu().numpy()
+
+        imgs = imgs.to(opt.device)
+        with torch.no_grad():
+            outs1, outs2, outs3 = model(imgs, evaluate=True)
+
+        outs1 = F.softmax(outs1, dim=1)
+        outs2= F.softmax(outs2, dim=1)
+        outs3 = F.softmax(outs3, dim=1)
+
+        coarseweights = torch.ones(outs2.shape).cuda()
+        mediumweights = torch.ones(outs3.shape).cuda()
+
+        for i in range(outs2.shape[1]):
+            coarseweights[:,i] = outs1[:,val_dataloader.dataset.coarse2medium[i]]
+
+        outs2 = outs2 * coarseweights
+
+
+        for i in range(outs3.shape[1]):
+            mediumweights[:,i] = outs2[:,val_dataloader.dataset.medium2fine[i]]
+        outs3 = outs3 * mediumweights
+
+        outs3 = torch.argmax(outs3, dim=-1).detach().cpu().numpy()
+
+        targets.append(labels)
+        preds.append(outs3)
+
+    preds = np.concatenate(preds, axis=0)
+    targets = np.concatenate(targets, axis=0)
+
+    '''
+    macrof1 = f1_score(targets, preds, average='macro')
+    weightedf1 = f1_score(targets, preds, average='weighted')
+    accuracy =  accuracy_score(targets, preds)
+    '''
+    #np.set_printoptions(precision=15)
+    #print(targets)
+    accuracies = []
+    for dis in opt.distances:
+
+        acc = distance_accuracy(targets, preds, dis=dis, trainset=opt.trainset, opt=opt)
+        print("Accuracy", dis, "is", acc)
+        if opt.testset == 'im2gps3k':
+            wandb.log({ str(dis) + " Accuracy" : acc})
+        else:
+            wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 
 if __name__ == '__main__':
     preds = []

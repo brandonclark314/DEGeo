@@ -12,24 +12,29 @@ def getopt():
 
     opt.mp16folder = "/squash/MP-16-zstd/resources/images/mp16/"
     opt.im2gps3k = "/home/al209167/datasets/im2gps3ktest/"
+    opt.yfcc26k = "/squash/MP-16-zstd/resources/images/yfcc25600/"
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.size = 324
+    opt.saved_model = "/home/br087771/DEGeo/weights/GeoCLIP100K (No RFF)/GeoCLIP100K (No RFF)_18_0.28.pth"
+
+    opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP-500K (Scheduler Test)'
+    opt.description = 'GeoCLIP100K (No RFF)-YFCCTest'
     opt.archname = 'GeoCLIP'
-    opt.evaluate = False
+    opt.evaluate = True
     opt.scene = False
+    opt.hier_eval = False
 
     opt.lr = 1e-2
     opt.step_size = 3
 
-    opt.batch_size = 32
+    opt.batch_size = 48
     opt.distances = [2500, 750, 200, 25, 1]
-    opt.trainset = 'train500K'
-    opt.testset = 'im2gps3k'
+    opt.trainset = 'train100K'
+    opt.testset = 'yfcc26k'
+    opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
     return opt

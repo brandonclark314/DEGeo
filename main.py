@@ -27,10 +27,13 @@ wandb.init(project='DEGeo',
 wandb.run.name = opt.description
 wandb.save()
 
-train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
+if not opt.evaluate:
+    train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
 val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+if not opt.evaluate:
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
@@ -38,25 +41,30 @@ scene_criterion = torch.nn.CrossEntropyLoss()
 
 model = models.GeoCLIP(opt=opt)
 
+if opt.evaluate:
+    model.load_state_dict(torch.load(opt.saved_model))
+
 optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
 _ = model.to(opt.device)
 wandb.watch(model, img_criterion, log="all")
-wandb.watch(model, gps_criterion, log="all")
+wandb.watch(model, scene_criterion, log="all")
 
 if not os.path.exists('./weights/'):
     os.mkdir('./weights/')
 
 best_loss = 10000
-for epoch in range(opt.n_epochs): 
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+for epoch in range(opt.n_epochs):
+    if opt.evaluate:
+        eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+        break
 
     if not opt.evaluate:
         _ = model.train()
 
-        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, gps_criterion=gps_criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
+        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, scene_criterion=scene_criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
 
     torch.save(model.state_dict(), 'weights/' + opt.description + '.pth')
 
