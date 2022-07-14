@@ -25,6 +25,10 @@ import models
 from config import getopt
 import dataloader
 
+# Geo Packages
+import random 
+from global_land_mask import globe
+
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else 0)
 
 def toCartesian(latitude, longitude):
@@ -42,10 +46,30 @@ def toLatLon(x, y, z):
     lon = np.arctan2(y, x)
     return [lat, lon]
 
+# def getRandomCoordinates(num_coords):
+#     coords = 2 * torch.rand(num_coords, 3) - 1
+#     coords = coords / coords.norm(dim=1, keepdim=True)
+#     return coords
+
 def getRandomCoordinates(num_coords):
-    coords = 2 * torch.rand(num_coords, 3) - 1
-    coords = coords / coords.norm(dim=1, keepdim=True)
-    return coords
+    coords = []
+
+    for i in range(num_coords):
+        gps = 2 * np.random.rand(3) - 1
+        gps = gps / gps.norm(dim=1, keepdim=True)
+        
+        lat, lon = toLatLon(gps[0], gps[1], gps[2])
+        
+        while not globe.is_land(lat, lon):
+            gps = 2 * np.random.rand(3) - 1
+            gps = gps / gps.norm(dim=1, keepdim=True)
+            lat, lon = toLatLon(gps[0], gps[1], gps[2])
+            
+        coords.append(gps)
+
+    coords = np.array(coords) 
+    
+    return torch.from_numpy(coords)
 
 def train_images(train_dataloader, model, img_criterion, gps_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
