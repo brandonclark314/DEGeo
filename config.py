@@ -16,10 +16,10 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/br087771/DEGeo/weights/GeoCLIP100K (No RFF)/GeoCLIP100K (No RFF)_18_0.28.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP4_7M (No RFF)_18_0.28.pth"
 
     opt.size = 224
-    opt.n_epochs = 32
+    opt.n_epochs = 40
 
     opt.description = 'GeoCLIP100K (No RFF)-YFCCTest'
     opt.archname = 'GeoCLIP'
@@ -32,7 +32,7 @@ def getopt():
 
     opt.batch_size = 48
     opt.distances = [2500, 750, 200, 25, 1]
-    opt.trainset = 'train'
+    opt.trainset = 'train1M'
     opt.testset = 'yfcc26k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
