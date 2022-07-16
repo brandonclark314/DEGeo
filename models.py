@@ -25,7 +25,6 @@ class GeoCLIP(nn.Module):
         super().__init__()
 
         self.L2 = nn.functional.normalize
-        self.GPS_Aug_Multiplier = 4
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
 
@@ -52,7 +51,7 @@ class GeoCLIP(nn.Module):
                                              
     def forward(self, image, location):
         image_features = self.encode_image(image).last_hidden_state 
-        location_features1, location_features2, location_features3, location_features4,
+        location_features1, location_features2, location_features3, location_features4, \
         location_features5 = self.encode_location(location)
 
 
