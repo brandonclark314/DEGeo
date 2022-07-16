@@ -67,7 +67,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
 
     val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 164))
     print("Outputting loss every", val_cycle, "batches")
-    print("Validating every", val_cycle*100, "batches")
+    print("Validating every", val_cycle*25, "batches")
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
@@ -131,7 +131,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if False and val_dataloader != None and i % (val_cycle * 100) == 0:
+        if val_dataloader != None and i % (val_cycle * 25) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
