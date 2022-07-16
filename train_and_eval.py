@@ -58,6 +58,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     tt_batch = time.time()
 
     data_iterator = train_dataloader 
+    gps_multiplier = model.GPS_Aug_Multiplier
 
     losses = []
     running_loss = 0.0
@@ -82,12 +83,16 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         imgs = imgs.to(opt.device)
         
+        # Add extra GPS Coordinates
+        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
+        gps_aug = torch.cat((gps, extra_gps), dim=0)
+        
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix = model(imgs, gps)
-            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-            
+            img_matrix, gps_matrix = model(imgs, gps_aug)
+            targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
+                                                                    batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
             out = model(imgs)
 
@@ -125,7 +130,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
-
+            #print("interation", i, "of", len(data_iterator))
         if False and val_dataloader != None and i % (val_cycle * 100) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
@@ -192,7 +197,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
