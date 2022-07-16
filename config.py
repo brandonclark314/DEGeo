@@ -19,7 +19,7 @@ def getopt():
     opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP4_7M (No RFF)_18_0.28.pth"
 
     opt.size = 224
-    opt.n_epochs = 40
+    opt.n_epochs = 50
 
     opt.description = 'GeoCLIP_4M'
     opt.archname = 'GeoCLIP'
