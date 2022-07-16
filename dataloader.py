@@ -188,7 +188,7 @@ class M16Dataset(Dataset):
         
         self.split = split 
         if split == 'train':
-            fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
+            fnames, classes, scenes = get_mp16_train(opt=opt)
         if split == 'train1M':
             fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
         if split == 'train500K':
