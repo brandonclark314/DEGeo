@@ -47,7 +47,7 @@ if opt.evaluate:
 
 optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=opt.patience, verbose=True, factor=0.5)
 
 _ = model.to(opt.device)
 wandb.watch(model, img_criterion, log="all")

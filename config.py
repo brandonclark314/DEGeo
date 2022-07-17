@@ -29,11 +29,12 @@ def getopt():
 
     opt.lr = 1e-2
     opt.step_size = 3
+    opt.patience = 50
 
-    opt.batch_size = 32
+    opt.batch_size = 64
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train'
-    opt.testset = 'im2gps3k'
+    opt.testset = 'im2gps3k' 
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
