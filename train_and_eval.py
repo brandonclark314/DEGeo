@@ -27,6 +27,19 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
+def augmentImages(imgs):
+    transform_list = transforms.Compose([
+            transforms.Resize(224),
+            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomAdjustSharpness(sharpness_factor=0.5),
+            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+            transforms.PILToTensor(),
+            transforms.ConvertImageDtype(torch.float),
+        ])
+    
+    return transform_list(imgs)
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
@@ -62,24 +75,19 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         imgs = imgs.to(opt.device)
         
+        # Augment Images
+        imgs_aug = augmentImages(imgs)
+        
         scene_labels = scenes[:, 1]
         scene_labels = scene_labels.to(opt.device)
 
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred = model(imgs, gps)
+            img_matrix, gps_matrix, scene_pred = (model(imgs, gps) + model(imgs_aug, gps)) / 2
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
-         
-        # Get Targets (GPS Cosine Similarities)
-        # gps_n = gps / gps.norm(dim=1, keepdim=True)
-        # targets = (gps_n @ gps_n.t())
-        
-        # targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
-        # targets = discretize(targets.detach().cpu().numpy(), 0.927)
-        # targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
     

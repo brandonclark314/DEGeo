@@ -22,7 +22,7 @@ config = {
 }
 
 wandb.init(project='DEGeo', 
-        entity='brandonclark314',
+        entity='vicentevivan',
         config=config)
 wandb.run.name = opt.description
 wandb.save()
@@ -57,6 +57,8 @@ if not os.path.exists('./weights/'):
 
 best_loss = 10000
 for epoch in range(opt.n_epochs):
+    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+    
     if opt.evaluate:
         eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         break
