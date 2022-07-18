@@ -8,7 +8,7 @@ def getopt():
     parser = argparse.ArgumentParser()
 
     opt = parser.parse_args()
-    opt.kernels = 11 #multiprocessing.cpu_count()
+    opt.kernels = 16 #multiprocessing.cpu_count()
 
     opt.mp16folder = "/squash/MP-16-zstd/resources/images/mp16/"
     opt.im2gps3k = "/home/al209167/datasets/im2gps3ktest/"
@@ -21,20 +21,20 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP100K (No RFF)-YFCCTest'
-    opt.archname = 'GeoCLIP'
-    opt.evaluate = True
+    opt.description = 'ViT100K Hier'
+    opt.archname = 'ViT'
+    opt.evaluate = False
     opt.scene = False
-    opt.hier_eval = False
+    opt.hier_eval = True
 
     opt.lr = 1e-2
     opt.step_size = 3
 
-    opt.batch_size = 48
+    opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'yfcc26k'
-    opt.traintype = 'CLIP'
+    opt.testset = 'im2gps3k'
+    opt.traintype = 'Classification'
     opt.device = torch.device('cuda')
 
     return opt

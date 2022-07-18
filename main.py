@@ -22,7 +22,7 @@ config = {
 }
 
 wandb.init(project='DEGeo', 
-        entity='vicentevivan',
+        entity='brandonclark314',
         config=config)
 wandb.run.name = opt.description
 wandb.save()
@@ -39,7 +39,7 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_s
 img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
 
-model = models.GeoCLIP(opt=opt)
+model = models.ViT()
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))

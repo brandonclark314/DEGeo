@@ -17,6 +17,7 @@ import random
 import torchvision.transforms as transforms 
 from torchvision.utils import save_image
 
+import pickle
 
 # from einops import rearrange
 import csv
@@ -74,10 +75,10 @@ def m16_val_transform():
     ])
     return m16_transform_list    
 
-def get_mp16_train(classfile=None, opt=None, cartesian_coords=True):
+def get_mp16_train(classfile='mp16_places365.csv', opt=None, cartesian_coords=True):
 
     class_info = pd.read_csv(opt.resources + classfile)
-    data = json.load(open('/home/c3-0/al209167/datasets/Resources/mp16_places365_mapping_h3.json','r'))
+    data = json.load(open(opt.resources + 'mp16_places365_mapping_h3.json','r'))
 
     #print("The classes should have been", class_info['34/8d/9055806529.jpg'])
     base_folder = opt.mp16folder

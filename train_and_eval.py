@@ -40,9 +40,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     dataset_size = 0
 
 
-    val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 164))
+    val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 25))
     print("Outputting loss every", val_cycle, "batches")
-    print("Validating every", val_cycle*100, "batches")
+    print("Validating every", val_cycle, "batches")
     print("Starting Epoch", epoch)
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
@@ -53,8 +53,12 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             gps = classes.to(opt.device)
         if opt.traintype == 'Classification':
-            classes = classes[:,2].type(torch.LongTensor)
-            classes = classes.to(opt.device)
+            coarse = classes[:,0].type(torch.LongTensor)
+            coarse = coarse.to(opt.device)
+            medium = classes[:,1].type(torch.LongTensor)
+            medium = medium.to(opt.device)
+            fine = classes[:,2].type(torch.LongTensor)
+            fine = fine.to(opt.device)
         
         imgs = imgs.to(opt.device)
         
@@ -67,7 +71,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             img_matrix, gps_matrix, scene_pred = model(imgs, gps)
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
         if opt.traintype == 'Classification':
-            out = model(imgs)
+            out1, out2, out3 = model(imgs)
          
         # Get Targets (GPS Cosine Similarities)
         # gps_n = gps / gps.norm(dim=1, keepdim=True)
@@ -91,11 +95,15 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             else:
                 loss = (img_loss + gps_loss) / 2
         if opt.traintype == 'Classification':
-            loss = img_criterion(out, classes)
+            loss1 = img_criterion(out1, coarse)
+            loss2 = img_criterion(out2, medium)
+            loss3 = img_criterion(out3, fine)
+
+            loss = loss1 + loss2 + loss3
 
             if opt.scene:
                 loss += scene_criterion(scene_pred)
-                loss = loss/2
+                loss = loss / 4
 
         loss.backward()
 
@@ -121,7 +129,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if False and val_dataloader != None and i % (val_cycle * 100) == 0:
+        if False and val_dataloader != None and i % val_cycle == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -169,7 +177,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
     
      # Save all the classes (possible locations to predict)
-    fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+    fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
     locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
     locations = [toCartesian(x[0], x[1]) for x in locations]
     locations = torch.tensor(locations)
@@ -265,10 +273,7 @@ def eval_images_weighted(val_dataloader, model, epoch, opt):
 
         acc = distance_accuracy(targets, preds, dis=dis, trainset=opt.trainset, opt=opt)
         print("Accuracy", dis, "is", acc)
-        if opt.testset == 'im2gps3k':
-            wandb.log({ str(dis) + " Accuracy" : acc})
-        else:
-            wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
+        wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 
 if __name__ == '__main__':
     preds = []

@@ -17,7 +17,9 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
-        self.location_encoder = nn.Sequential(nn.Linear(3, 1024),
+        #print("*"*60 + '\n' + "NOT USING FOURIER FEATURES\n" + "*"*60 + '\n')256
+        self.location_encoder = nn.Sequential(self.rff_encoding,
+                                              nn.Linear(512, 1024),
                                               nn.ReLU(),
                                               nn.Linear(1024, 1024),
                                               nn.ReLU(),
@@ -68,8 +70,8 @@ class ViT(nn.Module):
 
         self.vit = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         
-        self.coarse_classifier = nn.Linear(768, 10)
-        self.medium_classifier = nn.Linear(768, 10)
+        self.coarse_classifier = nn.Linear(768, 2967)
+        self.medium_classifier = nn.Linear(768, 6505)
         self.fine_classifier = nn.Linear(768, 11570)
         
     def forward(self, image):
@@ -89,9 +91,9 @@ class ResNet18(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1,1))
         self.flatten = nn.Flatten(1,-1)
 
-        self.coarse_classifier = nn.Linear(512, 10)
-        self.medium_classifier = nn.Linear(512, 10)
-        self.fine_classifier = nn.Linear(512, 10)
+        self.coarse_classifier = nn.Linear(512, 2967)
+        self.medium_classifier = nn.Linear(512, 6505)
+        self.fine_classifier = nn.Linear(512, 11570)
     
     def forward(self, image):
         out = self.resnet(image).hidden_states[-1]
