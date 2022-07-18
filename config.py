@@ -25,7 +25,7 @@ def getopt():
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
     opt.scene = False
-    opt.hier_eval = True
+    opt.hier_eval = False
 
     opt.lr = 1e-2
     opt.step_size = 3
