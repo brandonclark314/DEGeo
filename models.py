@@ -19,6 +19,15 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
+    
+def getHead():
+    return nn.Sequential(nn.Linear(768, 1024),
+                         nn.ReLU(),
+                         nn.Linear(1024, 1024),
+                         nn.ReLU(),
+                         nn.Linear(1024, 1024),
+                         nn.ReLU(),
+                         nn.Linear(1024, 512))
 
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
@@ -35,12 +44,24 @@ class GeoCLIP(nn.Module):
         self.location_encoder4 = getLocationEncoder(25)
         self.location_encoder5 = getLocationEncoder(1)
 
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.head1 = getHead()
+        self.head2 = getHead()
+        self.head3 = getHead()
+        self.head4 = getHead()
+        self.head5 = getHead()
+        
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
     def encode_image(self, image):
         return self.image_encoder(image)
+    
+    def multi_image_embeddings(self, image_features):
+        return [self.head1(image_features),
+                self.head2(image_features),
+                self.head3(image_features),
+                self.head4(image_features),
+                self.head5(image_features)]
         
     def encode_location(self, location):
         location = location.float()
@@ -55,12 +76,18 @@ class GeoCLIP(nn.Module):
         location_features1, location_features2, location_features3, location_features4, \
         location_features5 = self.encode_location(location)
 
-
-        image_features = image_features[:,0,:]
-        image_features = self.mlp(image_features)
+        image_features_ViT = image_features[:,0,:]
         
+        image_features1, image_features2, image_features3, \
+        image_features4, image_features5 = self.multi_image_embeddings(image_features_ViT)
+
         # Normalize features
-        image_features = image_features / image_features.norm(dim=1, keepdim=True)
+        image_features1 = image_features1 / image_features1.norm(dim=1, keepdim=True)
+        image_features2 = image_features2 / image_features2.norm(dim=1, keepdim=True)
+        image_features3 = image_features3 / image_features3.norm(dim=1, keepdim=True)
+        image_features4 = image_features4 / image_features4.norm(dim=1, keepdim=True)
+        image_features5 = image_features5 / image_features5.norm(dim=1, keepdim=True)
+        
         location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
         location_features2 = location_features2 / location_features2.norm(dim=1, keepdim=True)
         location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
@@ -73,11 +100,11 @@ class GeoCLIP(nn.Module):
         s = nn.Sigmoid()
         
         # Get probabilities (similarities) from each encoder
-        p1 = s(image_features @ location_features1.t())
-        p2 = s(image_features @ location_features2.t())
-        p3 = s(image_features @ location_features3.t())
-        p4 = s(image_features @ location_features4.t())
-        p5 = s(image_features @ location_features5.t())
+        p1 = s(image_features1 @ location_features1.t())
+        p2 = s(image_features2 @ location_features2.t())
+        p3 = s(image_features3 @ location_features3.t())
+        p4 = s(image_features4 @ location_features4.t())
+        p5 = s(image_features5 @ location_features5.t())
         
         P = 1 / (1 + (1 / p1 - 1) * \
                      (1 / p2 - 1) * \

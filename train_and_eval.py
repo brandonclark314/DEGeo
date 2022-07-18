@@ -131,7 +131,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if i % val_cycle == 0:
             if opt.traintype == 'CLIP':
-                scheduler.step(loss.item())
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
                 wandb.log({"GPS Loss": gps_loss.item()})
