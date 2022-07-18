@@ -8,18 +8,6 @@ from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
 
-# def getLocationEncoder(km):
-#     Earth_Diameter = 12742
-#     sigma = Earth_Diameter / (3 * km)
-#     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
-#     return nn.Sequential(rff_encoding,
-#                          nn.Linear(512, 1024),
-#                          nn.ReLU(),
-#                          nn.Linear(1024, 1024),
-#                          nn.ReLU(),
-#                          nn.Linear(1024, 1024),
-#                          nn.ReLU(),
-#                          nn.Linear(1024, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, km):
