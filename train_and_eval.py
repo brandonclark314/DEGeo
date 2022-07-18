@@ -123,7 +123,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         bar.set_postfix(Epoch=epoch, Train_Loss=epoch_loss,
                         LR=optimizer.param_groups[0]['lr'])
         
-        if val_dataloader != None and i % (val_cycle * 25) == 0:
+        if False and val_dataloader != None and i % (val_cycle * 25) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -131,7 +131,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if i % val_cycle == 0:
             if opt.traintype == 'CLIP':
-                scheduler.step(loss.item())
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
                 wandb.log({"GPS Loss": gps_loss.item()})

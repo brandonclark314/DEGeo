@@ -16,12 +16,12 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100k (RFF)/GeoCLIP100k_BZ32.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100k (RFF)/GeoCLIP100k_Average.pth"
 
     opt.size = 224
     opt.n_epochs = 50
 
-    opt.description = 'GeoCLIP_4M'
+    opt.description = 'GeoCLIP_100K'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
     opt.scene = False

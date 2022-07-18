@@ -66,26 +66,31 @@ class GeoCLIP(nn.Module):
         location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
         location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
         location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
-
+        
+        location_features = (location_features1 + location_features2 + location_features3 + location_features4 + location_features5)
+        location_features = location_features / location_features.norm(dim=1, keepdim=True)
+        
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
         
-        s = nn.Sigmoid()
+        # s = nn.Sigmoid()
         
         # Get probabilities (similarities) from each encoder
-        p1 = s(image_features @ location_features1.t())
-        p2 = s(image_features @ location_features2.t())
-        p3 = s(image_features @ location_features3.t())
-        p4 = s(image_features @ location_features4.t())
-        p5 = s(image_features @ location_features5.t())
+        # p1 = s(image_features @ location_features1.t())
+        # p2 = s(image_features @ location_features2.t())
+        # p3 = s(image_features @ location_features3.t())
+        # p4 = s(image_features @ location_features4.t())
+        # p5 = s(image_features @ location_features5.t())
         
-        P = 1 / (1 + (1 / p1 - 1) * \
-                     (1 / p2 - 1) * \
-                     (1 / p3 - 1) * \
-                     (1 / p4 - 1) * \
-                     (1 / p5 - 1))
+        # P = 1 / (1 + (1 / p1 - 1) * \
+        #              (1 / p2 - 1) * \
+        #              (1 / p3 - 1) * \
+        #              (1 / p4 - 1) * \
+        #              (1 / p5 - 1))
         
-        logits_per_image = logit_scale * P
+        # logits_per_image = logit_scale * P
+        
+        logits_per_image = logit_scale * (image_features @ location_features.t())
           
         logits_per_location = logits_per_image.t()
 
