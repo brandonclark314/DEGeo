@@ -5,6 +5,7 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 from colorama import Fore, Style
+import torchvision.transforms as transforms 
 
 # from einops import rearrange
 
@@ -51,6 +52,19 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
+def augmentImages(imgs):
+    transform_list = transforms.Compose([
+            transforms.Resize(224),
+            transforms.ColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomAdjustSharpness(sharpness_factor=0.5),
+            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+            transforms.PILToTensor(),
+            transforms.ConvertImageDtype(torch.float),
+        ])
+    
+    return transform_list(imgs)
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
@@ -72,7 +86,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
 
     bar = tqdm(enumerate(data_iterator), total=len(data_iterator))
 
-    for i ,(imgs, classes, scenes) in bar:
+    for i ,(imgs, classes, scenes) in bar: 
         batch_size = imgs.shape[0]
 
         if opt.traintype == 'CLIP':
@@ -87,10 +101,14 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
         gps_aug = torch.cat((gps, extra_gps), dim=0)
         
+        # Augment Images
+        imgs_aug = augmentImages(imgs)
+        
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix = model(imgs, gps_aug)
+            img_matrix, gps_matrix = (model(imgs, gps_aug) + model(imgs_aug, gps_aug)) / 2
+            
             targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
                                                                     batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
@@ -163,18 +181,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
 
     return correct / total
 
-def toCartesian(latitude, longitude):
-    lat = latitude * np.pi / 180
-    lon = longitude * np.pi / 180
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-    return [x, y, z]
-
-def toLatLon(x, y, z):
-    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
-    lon = np.arctan2(y, x)
-    return [lat, lon]
 
 def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))

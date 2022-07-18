@@ -21,7 +21,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 50
 
-    opt.description = 'GeoCLIP 100K Deep Encoder'
+    opt.description = 'GeoCLIP 100K Augment'
     opt.archname = 'GeoCLIP'
     opt.evaluate = False
     opt.scene = False
