@@ -1,3 +1,4 @@
+import encodings
 from transformers import ViTModel, ViTFeatureExtractor
 
 import numpy as np
@@ -7,18 +8,54 @@ from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
 
-def getLocationEncoder(km):
-    Earth_Diameter = 12742
-    sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
-    return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 512))
+# def getLocationEncoder(km):
+#     Earth_Diameter = 12742
+#     sigma = Earth_Diameter / (3 * km)
+#     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+#     return nn.Sequential(rff_encoding,
+#                          nn.Linear(512, 1024),
+#                          nn.ReLU(),
+#                          nn.Linear(1024, 1024),
+#                          nn.ReLU(),
+#                          nn.Linear(1024, 1024),
+#                          nn.ReLU(),
+#                          nn.Linear(1024, 512))
+    
+class LocationEncoder(nn.Module):
+    def __init__(self, km):
+        super(LocationEncoder, self).__init__()
+        Earth_Diameter = 12742
+        sigma = Earth_Diameter / (3 * km)
+        self.rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+        
+        self.l1 = nn.Linear(512, 1024)
+        self.l2 = nn.Linear(1024, 1024)
+        self.l3 = nn.Linear(1024, 1024)
+        self.l4 = nn.Linear(1024, 1024)
+        self.l5 = nn.Linear(1536, 1024)
+        self.l6 = nn.Linear(1024, 1024)
+        self.l7 = nn.Linear(1024, 1024)
+        self.l8 = nn.Linear(1024, 512)
+        
+    def forward(self, x):
+        x_rff = self.rff_encoding(x) # 512
+        x = self.l1(x_rff)
+        x = F.relu(x)
+        x = self.l2(x)
+        x = F.relu(x)
+        x = self.l3(x)
+        x = F.relu(x)
+        x = self.l4(x)
+        x = F.relu(x)
+        x = torch.cat((x, x_rff), dim=1)
+        x = self.l5(x)
+        x = F.relu(x)
+        x = self.l6(x)
+        x = F.relu(x)
+        x = self.l7(x)
+        x = F.relu(x)
+        x = self.l8(x)      
+        return x
 
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224):
@@ -29,11 +66,11 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
 
-        self.location_encoder1 = getLocationEncoder(2500)
-        self.location_encoder2 = getLocationEncoder(750)
-        self.location_encoder3 = getLocationEncoder(200)
-        self.location_encoder4 = getLocationEncoder(25)
-        self.location_encoder5 = getLocationEncoder(1)
+        self.location_encoder1 = LocationEncoder(km=2500)
+        self.location_encoder2 = LocationEncoder(km=750)
+        self.location_encoder3 = LocationEncoder(km=200)
+        self.location_encoder4 = LocationEncoder(km=25)
+        self.location_encoder5 = LocationEncoder(km=1)
 
         self.mlp = nn.Sequential(nn.Linear(768, 512))
         self.input_resolution = input_resolution
@@ -67,30 +104,25 @@ class GeoCLIP(nn.Module):
         location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
         location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
         
-        location_features = (location_features1 + location_features2 + location_features3 + location_features4 + location_features5)
-        location_features = location_features / location_features.norm(dim=1, keepdim=True)
-        
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
         
-        # s = nn.Sigmoid()
+        s = nn.Sigmoid()
         
         # Get probabilities (similarities) from each encoder
-        # p1 = s(image_features @ location_features1.t())
-        # p2 = s(image_features @ location_features2.t())
-        # p3 = s(image_features @ location_features3.t())
-        # p4 = s(image_features @ location_features4.t())
-        # p5 = s(image_features @ location_features5.t())
+        p1 = s(image_features @ location_features1.t())
+        p2 = s(image_features @ location_features2.t())
+        p3 = s(image_features @ location_features3.t())
+        p4 = s(image_features @ location_features4.t())
+        p5 = s(image_features @ location_features5.t())
         
-        # P = 1 / (1 + (1 / p1 - 1) * \
-        #              (1 / p2 - 1) * \
-        #              (1 / p3 - 1) * \
-        #              (1 / p4 - 1) * \
-        #              (1 / p5 - 1))
+        P = 1 / (1 + (1 / p1 - 1) * \
+                     (1 / p2 - 1) * \
+                     (1 / p3 - 1) * \
+                     (1 / p4 - 1) * \
+                     (1 / p5 - 1))
         
-        # logits_per_image = logit_scale * P
-        
-        logits_per_image = logit_scale * (image_features @ location_features.t())
+        logits_per_image = logit_scale * P
           
         logits_per_location = logits_per_image.t()
 
