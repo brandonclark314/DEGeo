@@ -186,7 +186,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
     
      # Save all the classes (possible locations to predict)
-    fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+    fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
     locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
     locations = [toCartesian(x[0], x[1]) for x in locations]
     locations = torch.tensor(locations)
