@@ -8,7 +8,7 @@ def getopt():
     parser = argparse.ArgumentParser()
 
     opt = parser.parse_args()
-    opt.kernels = 16 #multiprocessing.cpu_count()
+    opt.kernels = 10 #multiprocessing.cpu_count()
 
     opt.mp16folder = "/squash/MP-16-zstd/resources/images/mp16/"
     opt.im2gps3k = "/home/al209167/datasets/im2gps3ktest/"
@@ -16,15 +16,15 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/br087771/DEGeo/weights/GeoCLIP100K (No RFF)/GeoCLIP100K (No RFF)_18_0.28.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K MutliClass (RFF)_18_0.28.pth"
 
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'ViT100K Hier'
-    opt.archname = 'ViT'
+    opt.description = 'GeoCLIP100K MultiClass'
+    opt.archname = 'CLIP'
     opt.evaluate = False
-    opt.scene = False
+    opt.scene = True
     opt.hier_eval = True
 
     opt.lr = 1e-2

@@ -27,6 +27,32 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+
+toCartesianVec = np.vectorize(toCartesian)
+
+def toLatLon(x, y, z):
+    # Unit sphere to GPS
+    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
+    lon = np.arctan2(y, x)
+    
+    # Go to degrees
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    
+    return [lat, lon]
+
+def getRandomCoordinates(num_coords):
+    coords = 2 * torch.rand(num_coords, 3) - 1
+    coords = coords / coords.norm(dim=1, keepdim=True)
+    return coords
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
@@ -38,6 +64,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     losses = []
     running_loss = 0.0
     dataset_size = 0
+    gps_multiplier = model.GPS_Aug_Multiplier
 
 
     val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 25))
@@ -62,24 +89,26 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         imgs = imgs.to(opt.device)
         
-        scene_labels = scenes[:, 1]
-        scene_labels = scene_labels.to(opt.device)
+        # Add extra GPS Coordinates
+        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
+        gps_aug = torch.cat((gps, extra_gps), dim=0)
+        
+        scene_labels3 = scenes[:, 0]
+        scene_labels16 = scenes[:, 1]
+        scene_labels365 = scenes[:, 2]
+        
+        scene_labels3 = scene_labels3.to(opt.device)
+        scene_labels16 = scene_labels16.to(opt.device)
+        scene_labels365 = scene_labels365.to(opt.device)
 
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred = model(imgs, gps)
-            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps_aug)
+            targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
+                                                                    batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
-         
-        # Get Targets (GPS Cosine Similarities)
-        # gps_n = gps / gps.norm(dim=1, keepdim=True)
-        # targets = (gps_n @ gps_n.t())
-        
-        # targets = discretize(targets.detach().cpu().numpy(), 1 - 0.1 * np.exp(-epoch/2))
-        # targets = discretize(targets.detach().cpu().numpy(), 0.927)
-        # targets = torch.from_numpy(targets).to(opt.device).float()
 
         torch.set_printoptions(edgeitems=30)
     
@@ -90,7 +119,10 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             gps_loss = img_criterion(gps_matrix, targets).float()
         
             if opt.scene:
-                scene_loss = scene_criterion(scene_pred, scene_labels).float()
+                scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
+                              scene_criterion(scene_pred[1], scene_labels16).float() +
+                              scene_criterion(scene_pred[2], scene_labels365).float()) / 3
+                
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
                 loss = (img_loss + gps_loss) / 2
@@ -159,19 +191,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
             correct += 1
 
     return correct / total
-
-def toCartesian(latitude, longitude):
-    lat = latitude * np.pi / 180
-    lon = longitude * np.pi / 180
-    x = np.cos(lat) * np.cos(lon)
-    y = np.cos(lat) * np.sin(lon)
-    z = np.sin(lat)
-    return [x, y, z]
-
-def toLatLon(x, y, z):
-    lat = np.arctan2(z, np.sqrt(x**2 + y**2))
-    lon = np.arctan2(y, x)
-    return [lat, lon]
 
 def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
