@@ -91,7 +91,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         # Add extra GPS Coordinates
         extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
-        gps_aug = torch.cat((gps, extra_gps), dim=0)
+        gps_aug = torch.cat((classes, extra_gps), dim=0)
         
         scene_labels3 = scenes[:, 0]
         scene_labels16 = scenes[:, 1]
