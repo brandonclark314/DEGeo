@@ -34,7 +34,7 @@ def getopt():
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
-    opt.traintype = 'Classification'
+    opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
     return opt
