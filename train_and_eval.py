@@ -181,7 +181,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     if opt.partition == 'fine':
         predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
     elif opt.partition == '3K':
-        predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+        predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False)
     
     ground_truth = [(x[0], x[1]) for x in targets]   
 
