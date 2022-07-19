@@ -16,19 +16,20 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K MutliClass (RFF)_18_0.28.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K Eval (RFF)_18_0.28.pth"
 
     opt.size = 224
     opt.n_epochs = 32
 
-    opt.description = 'GeoCLIP100K MultiClass'
+    opt.description = 'GeoCLIP100K 3K Eval'
     opt.archname = 'CLIP'
     opt.evaluate = False
-    opt.scene = True
+    opt.scene = False
     opt.hier_eval = True
 
     opt.lr = 1e-2
     opt.step_size = 3
+    opt.partition = '3K'
 
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]

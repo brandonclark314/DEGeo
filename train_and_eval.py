@@ -178,7 +178,11 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
 
-    predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
+    if opt.partition == 'fine':
+        predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
+    elif opt.partition == '3K':
+        predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+    
     ground_truth = [(x[0], x[1]) for x in targets]   
 
     total = len(ground_truth)
@@ -196,9 +200,14 @@ def eval_images(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
     
      # Save all the classes (possible locations to predict)
-    fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-    locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-    locations = [toCartesian(x[0], x[1]) for x in locations]
+     
+    if opt.partition == 'fine':
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+        locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
+        locations = [toCartesian(x[0], x[1]) for x in locations]
+    elif opt.partition == '3K':
+        locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+    
     locations = torch.tensor(locations)
     locations = locations.to(opt.device)
 
