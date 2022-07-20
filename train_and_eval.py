@@ -58,7 +58,7 @@ def log_cos_loss(y_true, y_pred, opt):
     y_true = y_true.float()
     y_pred = y_pred.float()
     
-    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.atch_size))
+    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.batch_size))
     km = torch.acos(cos_sim) * earth_radius
     
     cos_sim_squeezed = (cos_sim + 1) / 2
