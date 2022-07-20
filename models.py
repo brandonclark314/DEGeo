@@ -39,6 +39,7 @@ class GeoCLIP(nn.Module):
         self.location_encoder5 = getLocationEncoder(1)
         
         self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
@@ -103,7 +104,6 @@ class GeoCLIP(nn.Module):
           
         logits_per_location = logits_per_image.t()
         
-        # Gps Similarity
         location_features = (location_features1 + location_features2 + location_features3 + location_features4 + location_features5) / 5
         location_features = location_features / location_features.norm(dim=1, keepdim=True)
         location = location / location.norm(dim=1, keepdim=True)
@@ -111,15 +111,10 @@ class GeoCLIP(nn.Module):
         gps_features_similarity = location_features @ location_features.t()
         gps_location_similarity = location @ location.t()
         
-        # Normalize
-        gps_features_similarity = (gps_features_similarity / gps_features_similarity.norm(dim=1, keepdim=True)).to(torch.float32)
-        gps_location_similarity = (gps_location_similarity / gps_location_similarity.norm(dim=1, keepdim=True)).to(torch.float32)
-        
-        gps_sim = gps_features_similarity @ gps_location_similarity.t()
-        gps_sim = (gps_sim + 1) / 2
-        gps_sim_loss = (-torch.log(gps_sim)).mean()
+        gps_pred = self.gps_mlp(image_features)
+        gps_pred = gps_pred / gps_pred.norm(dim=1, keepdim=True)
 
-        return logits_per_image, logits_per_location, scene_preds, gps_sim_loss
+        return logits_per_image, logits_per_location, scene_preds, gps_pred
 
 class ViT(nn.Module):
     def __init__(self):

@@ -104,7 +104,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_sim_loss = model(imgs, gps_aug)
+            img_matrix, gps_matrix, scene_pred, gps_pred = model(imgs, gps_aug)
             targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
                                                                     batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
@@ -117,6 +117,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
+            
+            gps_sim = gps @ gps_pred.t()
+            gps_pred_loss = img_criterion(gps_sim, torch.eye(3))
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -125,7 +128,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_sim_loss) / 3
+                loss = (img_loss + gps_loss + gps_pred_loss) / 3
         if opt.traintype == 'Classification':
             loss1 = img_criterion(out1, coarse)
             loss2 = img_criterion(out2, medium)
@@ -234,7 +237,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, gps_sim_loss = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
