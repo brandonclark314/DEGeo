@@ -160,7 +160,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Sim Loss": gps_sim_loss.item()})
+                wandb.log({"GPS Sim Loss": gps_pred_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
