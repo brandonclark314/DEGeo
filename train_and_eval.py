@@ -185,7 +185,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         predictions = [predictions[i] for i in preds]
     elif opt.partition == 'Mix':
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-        locations.append(dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False))
+        locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False)
         predictions = [locations[i] for i in preds]
     
     ground_truth = [(x[0], x[1]) for x in targets]   
@@ -216,7 +216,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations = [toCartesian(x[0], x[1]) for x in locations]
-        locations.append(dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True))
+        locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
     
     locations = torch.tensor(locations)
     locations = locations.to(opt.device)
