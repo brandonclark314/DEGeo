@@ -118,7 +118,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
             
-            gps_sim = gps @ gps_pred.t()
+            gps_sim = gps.float() @ gps_pred.t().float()
             gps_pred_loss = img_criterion(gps_sim, torch.eye(3))
         
             if opt.scene:
