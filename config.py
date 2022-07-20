@@ -16,7 +16,7 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K (128) (RFF)_18_0.28.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K Mix (256) (RFF)_18_0.28.pth"
 
     opt.size = 224
     opt.n_epochs = 64
@@ -29,9 +29,9 @@ def getopt():
 
     opt.lr = 1e-2
     opt.step_size = 3
-    opt.partition = '3K'
+    opt.partition = 'Mix'
 
-    opt.batch_size = 128
+    opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
