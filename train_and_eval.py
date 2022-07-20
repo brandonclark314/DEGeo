@@ -118,8 +118,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
             
-            gps_sim = gps.float() @ gps_pred.t().float()
-            gps_pred_loss = img_criterion(gps_sim, torch.eye(batch_size))
+            gps = gps.float()
+            gps_pred = gps_pred.float()
+            gps_pred_loss = torch.nn.CosineEmbeddingLoss()(gps, gps_pred, torch.ones(batch_size).to(opt.device)) + 1
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
