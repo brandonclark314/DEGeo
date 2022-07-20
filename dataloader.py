@@ -247,9 +247,7 @@ class M16Dataset(Dataset):
             self.transform = m16_val_transform()
 
     def __getitem__(self, idx):
-        print(idx, flush=True)
         sample = self.data[idx]
-        print(sample, flush=True)
         img = im.open(sample).convert('RGB')
         
         img = self.transform(img)

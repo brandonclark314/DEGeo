@@ -39,7 +39,7 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_s
 img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
 
-model = models.GeoCLIP(opt = opt)
+model = models.GeoCLIP(opt=opt)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
@@ -57,7 +57,7 @@ if not os.path.exists('./weights/'):
 
 best_loss = 10000
 for epoch in range(opt.n_epochs):
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
     
     if opt.evaluate:
         eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)

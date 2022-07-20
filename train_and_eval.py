@@ -274,7 +274,6 @@ def eval_images_weighted(val_dataloader, model, epoch, opt):
 
         outs2 = outs2 * coarseweights
 
-
         for i in range(outs3.shape[1]):
             mediumweights[:,i] = outs2[:,val_dataloader.dataset.medium2fine[i]]
         outs3 = outs3 * mediumweights
