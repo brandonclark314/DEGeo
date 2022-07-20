@@ -112,10 +112,10 @@ class GeoCLIP(nn.Module):
         gps_location_similarity = location @ location.t()
         
         # Normalize
-        gps_features_similarity = gps_features_similarity / gps_features_similarity.norm(dim=1, keepdim=True)
-        gps_location_similarity = gps_location_similarity / gps_location_similarity.norm(dim=1, keepdim=True)
+        gps_features_similarity = (gps_features_similarity / gps_features_similarity.norm(dim=1, keepdim=True)).to(torch.float64)
+        gps_location_similarity = (gps_location_similarity / gps_location_similarity.norm(dim=1, keepdim=True)).to(torch.float64)
         
-        gps_sim = gps_features_similarity @ gps_location_similarity
+        gps_sim = gps_features_similarity @ gps_location_similarity.t()
         gps_sim = (gps_sim + 1) / 2
         gps_sim_loss = -torch.log(gps_sim)
         gps_sim_loss = gps_loss.mean()
