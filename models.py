@@ -117,8 +117,7 @@ class GeoCLIP(nn.Module):
         
         gps_sim = gps_features_similarity @ gps_location_similarity.t()
         gps_sim = (gps_sim + 1) / 2
-        gps_sim_loss = -torch.log(gps_sim)
-        gps_sim_loss = gps_loss.mean()
+        gps_sim_loss = (-torch.log(gps_sim)).mean()
 
         return logits_per_image, logits_per_location, scene_preds, gps_sim_loss
 
