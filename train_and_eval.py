@@ -53,6 +53,19 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
+def log_cos_loss(y_true, y_pred, opt):
+    earth_radius = 6371
+    y_true = y_true.float()
+    y_pred = y_pred.float()
+    
+    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.atch_size))
+    km = torch.acos(cos_sim) * earth_radius
+    
+    cos_sim_squeezed = (cos_sim + 1) / 2
+    log_cos_loss = -torch.log(cos_sim_squeezed).to(opt.device)
+    
+    return log_cos_loss, km
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
     batch_times, model_times, losses = [], [], []
@@ -120,7 +133,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             
             gps = gps.float()
             gps_pred = gps_pred.float()
-            gps_pred_loss = torch.nn.CosineEmbeddingLoss()(gps, gps_pred, torch.ones(batch_size).to(opt.device)) + 1
+            gps_pred_loss, km = log_cos_loss(gps, gps_pred, opt)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -160,7 +173,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Sim Loss": gps_pred_loss.item()})
+                wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
