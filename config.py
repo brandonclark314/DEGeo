@@ -21,7 +21,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K 3K Eval (GPS_LOSS)'
+    opt.description = 'GeoCLIP100K 3K Eval (Test)'
     opt.archname = 'CLIP'
     opt.evaluate = True
     opt.scene = False
