@@ -168,9 +168,7 @@ def get_yfcc26k_test_classes(classfile="yfcc25600_places365.csv", opt=None, cart
 
     for row in class_info.iterrows():
         filename = base_folder + row[1]['IMG_ID']
-        if exists(filename):
-            fnames.append(filename)
-            
+        if exists(filename):            
             latitude = float(row[1]['LAT'])
             longitude = float(row[1]['LON'])
 
