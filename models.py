@@ -39,8 +39,7 @@ class GeoCLIP(nn.Module):
         self.location_encoder5 = getLocationEncoder(1)
         
         self.mlp = nn.Sequential(nn.Linear(768, 512))
-        self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
-        
+
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
 
