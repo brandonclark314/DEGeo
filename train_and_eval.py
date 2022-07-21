@@ -58,11 +58,12 @@ def log_cos_loss(y_true, y_pred, opt):
     y_true = y_true.float()
     y_pred = y_pred.float()
     
-    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.batch_size).to(opt.device))
-    km = torch.acos(cos_sim) * earth_radius
+    cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
+    
+    km = torch.acos(torch.mean(cos_sim)) * earth_radius
     
     cos_sim_squeezed = (cos_sim + 1) / 2
-    log_cos_loss = -torch.log(cos_sim_squeezed).to(opt.device)
+    log_cos_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
     
     return log_cos_loss, km
 
