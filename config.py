@@ -16,7 +16,7 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K Eval (128 BS)_2_3.87.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K 3K Eval (128 BS)_2_3.87.pth"
 
     opt.size = 224
     opt.n_epochs = 64
