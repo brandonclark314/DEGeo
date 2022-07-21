@@ -103,18 +103,8 @@ class GeoCLIP(nn.Module):
         logits_per_image = logit_scale * P
           
         logits_per_location = logits_per_image.t()
-        
-        location_features = (location_features1 + location_features2 + location_features3 + location_features4 + location_features5) / 5
-        location_features = location_features / location_features.norm(dim=1, keepdim=True)
-        location = location / location.norm(dim=1, keepdim=True)
 
-        gps_features_similarity = location_features @ location_features.t()
-        gps_location_similarity = location @ location.t()
-        
-        gps_pred = self.gps_mlp(image_features)
-        gps_pred = gps_pred / gps_pred.norm(dim=1, keepdim=True)
-
-        return logits_per_image, logits_per_location, scene_preds, gps_pred
+        return logits_per_image, logits_per_location, scene_preds
 
 class ViT(nn.Module):
     def __init__(self):

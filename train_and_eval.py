@@ -104,7 +104,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_pred = model(imgs, gps_aug)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps_aug)
             targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
                                                                     batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
@@ -117,10 +117,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
-            
-            gps = gps.float()
-            gps_pred = gps_pred.float()
-            gps_pred_loss = torch.nn.CosineEmbeddingLoss()(gps, gps_pred, torch.ones(batch_size).to(opt.device)) + 1
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -129,7 +125,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_pred_loss) / 3
+                loss = (img_loss + gps_loss) / 2
         if opt.traintype == 'Classification':
             loss1 = img_criterion(out1, coarse)
             loss2 = img_criterion(out2, medium)
@@ -160,7 +156,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Sim Loss": gps_pred_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
@@ -187,6 +182,9 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
     elif opt.partition == '3K':
         predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False) 
+        predictions = [predictions[i] for i in preds]
+    elif opt.partition == '21K':
+        locations = get_yfcc26k_test_classes(opt=opt, cartesian_coords=False) 
         predictions = [predictions[i] for i in preds]
     elif opt.partition == 'Mix':
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
@@ -217,6 +215,8 @@ def eval_images(val_dataloader, model, epoch, opt):
         locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+    elif opt.partition == '21K':
+        locations = get_yfcc26k_test_classes(opt=opt, cartesian_coords=True)
     elif opt.partition == 'Mix':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
@@ -238,7 +238,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, gps_pred = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)

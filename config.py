@@ -16,14 +16,14 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K Eval LogGPS (32 BS).pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K Eval (128 BS)_2_3.87.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
     opt.description = 'GeoCLIP100K 3K Eval (GPS_LOSS)'
     opt.archname = 'CLIP'
-    opt.evaluate = False
+    opt.evaluate = True
     opt.scene = False
     opt.hier_eval = True
 
@@ -34,7 +34,7 @@ def getopt():
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'im2gps3k'
+    opt.testset = 'yfcc26k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
