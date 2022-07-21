@@ -29,7 +29,7 @@ def getopt():
 
     opt.lr = 1e-2
     opt.step_size = 3
-    opt.partition = 'fine'
+    opt.partition = '26K'
 
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
