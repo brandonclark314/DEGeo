@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 import dataloader
-from train_and_eval import train_images, eval_images
+from train_and_eval import eval_images_SGD, train_images, eval_images
 
 import wandb
 
@@ -34,7 +34,7 @@ val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 if not opt.evaluate:
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=64, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
@@ -57,7 +57,8 @@ if not os.path.exists('./weights/'):
 
 best_loss = 10000
 for epoch in range(opt.n_epochs):
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
+    # eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
+    eval_images_SGD(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
     
     if opt.evaluate:
         eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)

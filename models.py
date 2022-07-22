@@ -1,3 +1,4 @@
+from importlib.metadata import requires
 from transformers import ViTModel
 from transformers import ResNetForImageClassification as ResNet
 
@@ -7,7 +8,10 @@ import torch.nn.functional as F
 from torch import logit, nn
 import matplotlib.pyplot as plt
 from rff.layers import GaussianEncoding
+from torch.autograd import Variable
 import torchvision.models as models
+from config import getopt
+from infonce import InfoNCE
 
 def getLocationEncoder(km):
     Earth_Diameter = 12742
@@ -21,24 +25,86 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
+    
+def normalize(x):
+    return x / x.norm(dim=1, keepdim=True)
 
+def toCartesian(L):
+    L = L * np.pi / 180
+
+    x = torch.cos(L[:, 0]) * torch.cos(L[:, 1])
+    y = torch.cos(L[:, 0]) * torch.sin(L[:, 1])
+    z = torch.sin(L[:, 0])
+    
+    R = torch.stack([x, y, z], dim=1)
+    return R
+
+def toLatLon(R):
+    x = R[:, 0]
+    y = R[:, 1]
+    z = R[:, 2]
+    
+    lat = torch.arctan2(z, torch.sqrt(x**2 + y**2))
+    lon = torch.arctan2(y, x)
+    
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    
+    L = torch.stack([lat, lon], dim=1)
+    return L
+    
+class LocationEncoder(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+
+        self.LocEnc2500k = getLocationEncoder(2500)
+        self.LocEnc750k = getLocationEncoder(750)
+        self.LocEnc200k = getLocationEncoder(200)
+        self.LocEnc25k = getLocationEncoder(25)
+        self.LocEnc1k = getLocationEncoder(1)
+        
+    def forward(self, location, stochastic=False):
+        location = location.float()
+        L2500k = self.LocEnc2500k(location)
+        L750k = self.LocEnc750k(location)
+        L200k = self.LocEnc200k(location)
+        L25k = self.LocEnc25k(location)
+        L1k = self.LocEnc1k(location)
+        
+        if stochastic:
+            w = torch.rand(5)
+            w = w / w.sum()
+            location_features = (w[0] * L2500k + w[1] * L750k + w[2] * L200k + w[3] * L25k + w[4] * L1k)
+        else:
+            location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+
+        return location_features
+    
+class ImageEncoder(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+        self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        
+    def forward(self, image):
+        image_features = self.image_encoder(image).last_hidden_state
+        image_features = image_features[:,0,:]
+        image_features = self.mlp(image_features)
+        return image_features
+        
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None):
         super().__init__()
-
         self.opt = opt
+        self.input_resolution = input_resolution
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         self.GPS_Aug_Multiplier = 4
         
-        self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.rff_encoding = GaussianEncoding(sigma=10.0, input_size=3, encoded_size=256)
+        self.location_encoder = LocationEncoder(opt)
+        self.image_encoder = ImageEncoder(opt)
         
-        self.location_encoder1 = getLocationEncoder(2500)
-        self.location_encoder2 = getLocationEncoder(750)
-        self.location_encoder3 = getLocationEncoder(200)
-        self.location_encoder4 = getLocationEncoder(25)
-        self.location_encoder5 = getLocationEncoder(1)
-        
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
         self.gps_mlp = nn.Sequential(nn.Linear(512, 256),
                                      nn.ReLU(),
                                      nn.Linear(256, 256),
@@ -47,42 +113,22 @@ class GeoCLIP(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(256, 3))
         
-        self.input_resolution = input_resolution
-        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(512, 3)
             self.scene_predictor16 = nn.Linear(512, 16)
             self.scene_predictor365 = nn.Linear(512, 365)
-        
-    def encode_image(self, image):
-        return self.image_encoder(image)
-        
-    def encode_location(self, location):
-        location = location.float()
-        return [self.location_encoder1(location),
-                self.location_encoder2(location),
-                self.location_encoder3(location),
-                self.location_encoder4(location),
-                self.location_encoder5(location)]
                                              
     def forward(self, image, location):
-        image_features = self.encode_image(image).last_hidden_state
-        location_features1, location_features2, location_features3, location_features4, \
-        location_features5 = self.encode_location(location)
-
-        image_features = image_features[:,0,:]
-        image_features = self.mlp(image_features)
+        image_features = self.image_encoder(image)
+        location_features = self.location_encoder(location)
+        gps_0 = self.gps_mlp(location_features)
         
         # Normalize features
-        image_features = image_features / image_features.norm(dim=1, keepdim=True)
-        location_features1 = location_features1 / location_features1.norm(dim=1, keepdim=True)
-        location_features2 = location_features2 / location_features2.norm(dim=1, keepdim=True)
-        location_features3 = location_features3 / location_features3.norm(dim=1, keepdim=True)
-        location_features4 = location_features4 / location_features4.norm(dim=1, keepdim=True)
-        location_features5 = location_features5 / location_features5.norm(dim=1, keepdim=True)
-
+        image_features = normalize(image_features)
+        location_features = normalize(location_features)
+        gps_0 = normalize(gps_0)
         scene_preds = None
+        
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
@@ -91,36 +137,42 @@ class GeoCLIP(nn.Module):
         # Cosine similarity as logits
         logit_scale = self.logit_scale.exp()
         
-        s = nn.Sigmoid()
-        
-        # Get probabilities (similarities) from each encoder
-        p1 = s(image_features @ location_features1.t())
-        p2 = s(image_features @ location_features2.t())
-        p3 = s(image_features @ location_features3.t())
-        p4 = s(image_features @ location_features4.t())
-        p5 = s(image_features @ location_features5.t())
-        
-        P = 1 / (1 + (1 / p1 - 1) * \
-                     (1 / p2 - 1) * \
-                     (1 / p3 - 1) * \
-                     (1 / p4 - 1) * \
-                     (1 / p5 - 1))
-        
-        logits_per_image = logit_scale * P
-          
+        logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
-        
-        location_features = (location_features1 + location_features2 + location_features3 + location_features4 + location_features5) / 5
-        location_features = location_features / location_features.norm(dim=1, keepdim=True)
-        location = location / location.norm(dim=1, keepdim=True)
 
-        gps_features_similarity = location_features @ location_features.t()
-        gps_location_similarity = location @ location.t()
-        
-        gps_pred = self.gps_mlp(image_features)
-        gps_pred = gps_pred / gps_pred.norm(dim=1, keepdim=True)
+        return logits_per_image, logits_per_location, scene_preds, gps_0
 
-        return logits_per_image, logits_per_location, scene_preds, gps_pred
+    def predict(self, image, steps = 5):    
+        image_features = self.image_encoder(image)
+        location = self.gps_mlp(image_features) # GPS_0
+        location = normalize(location)
+        location = toLatLon(location)
+        location = torch.nn.Parameter(location.data, requires_grad=True)
+        image_features = normalize(image_features)
+        
+        optimizer = torch.optim.SGD([location], lr=0.0001, momentum=0.9)
+
+        # Disable gradients for the network.
+        self.location_encoder.requires_grad = False
+        
+        for i in range(steps):
+            print("Eval step: {}".format(i))
+            optimizer.zero_grad()
+            
+            # Forward pass
+            location_features = self.location_encoder(toCartesian(location), stochastic=True)
+            location_features = normalize(location_features)
+            similarity = image_features @ location_features.t()
+            loss = -torch.log(torch.sigmoid(similarity)).mean()
+            loss.backward(retain_graph=True)
+            
+            # Update
+            optimizer.step()
+        
+        # Enable gradients for the network.
+        self.location_encoder.requires_grad = True
+        
+        return location.data
 
 class ViT(nn.Module):
     def __init__(self):
@@ -213,19 +265,19 @@ if __name__ == "__main__":
     # Test vit_model with random input
     image = torch.randn(10, 3, 224, 224)
     location = torch.randn(10, 3)
-    # model = GeoCLIP()
+    model = GeoCLIP(opt=getopt())
     # model = ViT()
     # model = ResNet18()
     model.eval()
     with torch.no_grad():
-        image_features, location_features, scenes_preds = model(image, location)
+        image_features, location_features, scenes_preds, gps_0 = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
 
     # Plot Image features matrix as heatmap
     # criterion = torch.nn.BCELoss()
-    criterion = torch.nn.MSELoss()
+    criterion = torch.nn.CrossEntropyLoss()
     
     # Get Targets (GPS Cosine Similarities)
     gps_n = location / location.norm(dim=1, keepdim=True)
@@ -243,6 +295,10 @@ if __name__ == "__main__":
     print(img_loss)
     print(gps_loss)
     print(loss)
+    
+    print(model.predict(image))
+    
+    print(toLatLon(gps_0))
     
     plt.figure(figsize=(10,10))
     plt.imshow(image_features, cmap='viridis')

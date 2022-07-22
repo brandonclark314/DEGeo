@@ -5,9 +5,9 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 from colorama import Fore, Style
+from infonce import InfoNCE
 
 # from einops import rearrange
-
 import torch
 import torch.nn.functional as F
 import pickle
@@ -27,6 +27,7 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
+# Numpy version of the function
 def toCartesian(latitude, longitude):
     lat = latitude * np.pi / 180
     lon = longitude * np.pi / 180
@@ -53,19 +54,22 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
-def log_cos_loss(y_true, y_pred, opt):
+def log_sim_loss(y_true, y_pred):
     earth_radius = 6371
     y_true = y_true.float()
     y_pred = y_pred.float()
-    
+
+    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.batch_size).to(opt.device))
+    km = torch.acos(cos_sim) * earth_radius
     cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
-    
+
     km = torch.acos(torch.mean(cos_sim)) * earth_radius
-    
+
     cos_sim_squeezed = (cos_sim + 1) / 2
-    log_cos_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
-    
-    return log_cos_loss, km
+    log_sim_loss = -torch.log(cos_sim_squeezed).to(opt.device)
+    log_sim_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
+
+    return log_sim_loss, km
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
@@ -118,7 +122,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_pred = model(imgs, gps_aug)
+            img_matrix, gps_matrix, scene_pred, gps_0 = model(imgs, gps_aug)
             targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
                                                                     batch_size * gps_multiplier)), dim=1).to(opt.device)
         if opt.traintype == 'Classification':
@@ -131,10 +135,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
-            
-            gps = gps.float()
-            gps_pred = gps_pred.float()
-            gps_pred_loss, km = log_cos_loss(gps, gps_pred, opt)
+            gps_pred_loss, km = log_sim_loss(gps, gps_0)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -173,7 +174,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
-                wandb.log({"GPS Loss": gps_loss.item()})
                 wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -235,7 +235,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations = [toCartesian(x[0], x[1]) for x in locations]
-        locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+        locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)'
     
     locations = torch.tensor(locations)
     locations = locations.to(opt.device)
@@ -252,7 +252,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, gps_pred = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
@@ -273,6 +273,52 @@ def eval_images(val_dataloader, model, epoch, opt):
     accuracies = []
     for dis in opt.distances:
         acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
+        print("Accuracy", dis, "is", acc)
+        wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
+        
+def distance_accuracy_direct(targets, preds, dis=2500, set='im2gps3k', trainset='train', opt=None):
+    ground_truth = [(x[0], x[1]) for x in targets]   
+
+    total = len(ground_truth)
+    correct = 0
+
+    for i in range(len(ground_truth)):
+
+        if GD(preds[i], ground_truth[i]).km <= dis:
+            correct += 1
+
+    return correct / total
+        
+def eval_images_SGD(val_dataloader, model, epoch, opt):
+    bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
+
+    locations = torch.tensor(locations)
+    locations = locations.to(opt.device)
+
+    preds = []
+    targets = []
+
+    model.eval()
+    
+    for i, (imgs, labels, scenes) in bar:
+        labels = labels.cpu().numpy()
+        imgs = imgs.to(opt.device)
+        
+        outs = model.predict(imgs).detach().cpu().numpy()
+        
+        # Save the predictions and targets
+        targets.append(labels)
+        preds.append(outs)
+
+    print("Shape Locations 1:", locations.shape)
+    preds = np.concatenate(preds, axis=0)
+    targets = np.concatenate(targets, axis=0)
+    
+    model.train()
+
+    accuracies = []
+    for dis in opt.distances:
+        acc = distance_accuracy_direct(targets, preds, dis=dis, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 

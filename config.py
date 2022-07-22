@@ -2,7 +2,6 @@ import argparse
 import multiprocessing
 #import argparge
 import torch
-import models
 
 def getopt():
     parser = argparse.ArgumentParser()
@@ -16,12 +15,12 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K 3K Eval LogGPS (32 BS).pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K SGD Eval.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K 3K Eval (GPS_LOSS)'
+    opt.description = 'GeoCLIP100K SGD Eval'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False
