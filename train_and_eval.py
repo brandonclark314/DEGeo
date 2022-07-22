@@ -292,9 +292,6 @@ def distance_accuracy_direct(targets, preds, dis=2500, set='im2gps3k', trainset=
 def eval_images_SGD(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
 
-    locations = torch.tensor(locations)
-    locations = locations.to(opt.device)
-
     preds = []
     targets = []
 
@@ -310,7 +307,6 @@ def eval_images_SGD(val_dataloader, model, epoch, opt):
         targets.append(labels)
         preds.append(outs)
 
-    print("Shape Locations 1:", locations.shape)
     preds = np.concatenate(preds, axis=0)
     targets = np.concatenate(targets, axis=0)
     
