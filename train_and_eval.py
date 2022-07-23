@@ -54,7 +54,7 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
-def log_sim_loss(y_true, y_pred,):
+def log_sim_loss(y_true, y_pred, opt):
     earth_radius = 6371
     y_true = y_true.float()
     y_pred = y_pred.float()
@@ -134,7 +134,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
-            gps_pred_loss, km = log_sim_loss(gps, gps_0)
+            gps_pred_loss, km = log_sim_loss(gps, gps_0, opt=opt)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
