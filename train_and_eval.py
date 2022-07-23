@@ -54,19 +54,18 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
-def log_sim_loss(y_true, y_pred):
+def log_sim_loss(y_true, y_pred,):
     earth_radius = 6371
     y_true = y_true.float()
     y_pred = y_pred.float()
 
-    cos_sim = 1 - torch.nn.CosineEmbeddingLoss()(y_true, y_pred, torch.ones(opt.batch_size).to(opt.device))
+    cos_sim = cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
     km = torch.acos(cos_sim) * earth_radius
     cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
 
     km = torch.acos(torch.mean(cos_sim)) * earth_radius
 
     cos_sim_squeezed = (cos_sim + 1) / 2
-    log_sim_loss = -torch.log(cos_sim_squeezed).to(opt.device)
     log_sim_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
 
     return log_sim_loss, km
