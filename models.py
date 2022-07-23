@@ -159,7 +159,7 @@ class GeoCLIP(nn.Module):
     
         for i in range(steps):
             print("Eval step: {}".format(i))
-            location = location.detach()
+            location = location.detach().requires_grad_(True)
             optimizer.zero_grad()
             
             # Forward pass
