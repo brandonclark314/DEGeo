@@ -34,7 +34,7 @@ val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 if not opt.evaluate:
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=64, num_workers=opt.kernels, shuffle=True, drop_last=False)
+val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
