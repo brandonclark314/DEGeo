@@ -152,23 +152,30 @@ class GeoCLIP(nn.Module):
         
         optimizer = torch.optim.SGD([location], lr=0.0001, momentum=0.9)
         
-        with torch.no_grad():
-            location = torch.nn.Parameter(location.data, requires_grad=True)
+        # Disable autograd 
+        image_features = image_features.detach().requires_grad_(False)
+        for param in self.location_encoder.parameters():
+            param.requires_grad_(False)
+    
+        for i in range(steps):
+            print("Eval step: {}".format(i))
+            location = location.detach()
+            optimizer.zero_grad()
             
-            for i in range(steps):
-                print("Eval step: {}".format(i))
-                location = location.detach()
-                optimizer.zero_grad()
-                
-                # Forward pass
-                location_features = self.location_encoder(toCartesian(location), stochastic=True)
-                location_features = normalize(location_features)
-                similarity = image_features @ location_features.t()
-                loss = -torch.log(torch.sigmoid(similarity)).mean()
-                loss.backward()
-                
-                # Update
-                optimizer.step()
+            # Forward pass
+            location_features = self.location_encoder(toCartesian(location), stochastic=True)
+            location_features = normalize(location_features)
+            similarity = image_features @ location_features.t()
+            loss = -torch.log(torch.sigmoid(similarity)).mean()
+            loss.backward()
+            
+            # Update
+            optimizer.step()
+            
+        # Enable autograd
+        image_features = image_features.requires_grad_(True)
+        for param in self.location_encoder.parameters():
+            param.requires_grad_(True)
         
         return location.data
 
