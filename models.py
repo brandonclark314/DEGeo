@@ -151,27 +151,24 @@ class GeoCLIP(nn.Module):
         image_features = normalize(image_features)
         
         optimizer = torch.optim.SGD([location], lr=0.0001, momentum=0.9)
-
-        # Disable gradients for the network.
-        self.location_encoder.requires_grad = False
         
-        for i in range(steps):
-            print("Eval step: {}".format(i))
-            location = location.data
-            optimizer.zero_grad()
+        with torch.no_grad():
+            location = torch.nn.Parameter(location.data, requires_grad=True)
             
-            # Forward pass
-            location_features = self.location_encoder(toCartesian(location), stochastic=True)
-            location_features = normalize(location_features)
-            similarity = image_features @ location_features.t()
-            loss = -torch.log(torch.sigmoid(similarity)).mean()
-            loss.backward()
-            
-            # Update
-            optimizer.step()
-
-        # Enable gradients for the network.
-        self.location_encoder.requires_grad = True
+            for i in range(steps):
+                print("Eval step: {}".format(i))
+                location = location.detach()
+                optimizer.zero_grad()
+                
+                # Forward pass
+                location_features = self.location_encoder(toCartesian(location), stochastic=True)
+                location_features = normalize(location_features)
+                similarity = image_features @ location_features.t()
+                loss = -torch.log(torch.sigmoid(similarity)).mean()
+                loss.backward()
+                
+                # Update
+                optimizer.step()
         
         return location.data
 
