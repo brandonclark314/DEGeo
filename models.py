@@ -152,7 +152,7 @@ class GeoCLIP(nn.Module):
         image_features = normalize(image_features)
         
         optimizer = torch.optim.SGD([location], lr=0.001, momentum=0.9)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
         
         # Disable autograd 
         image_features = image_features.detach().requires_grad_(False)
