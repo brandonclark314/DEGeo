@@ -157,7 +157,7 @@ class GeoCLIP(nn.Module):
         
         for i in range(steps):
             print("Eval step: {}".format(i))
-            location = location.detach()
+            location = location.data
             optimizer.zero_grad()
             
             # Forward pass
@@ -169,7 +169,7 @@ class GeoCLIP(nn.Module):
             
             # Update
             optimizer.step()
-        
+
         # Enable gradients for the network.
         self.location_encoder.requires_grad = True
         
