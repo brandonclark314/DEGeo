@@ -1,4 +1,5 @@
 from importlib.metadata import requires
+import sched
 from transformers import ViTModel
 from transformers import ResNetForImageClassification as ResNet
 
@@ -150,7 +151,8 @@ class GeoCLIP(nn.Module):
         location = torch.nn.Parameter(location.data, requires_grad=True)
         image_features = normalize(image_features)
         
-        optimizer = torch.optim.SGD([location], lr=0.0001, momentum=0.9)
+        optimizer = torch.optim.SGD([location], lr=0.001, momentum=0.9)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
         
         # Disable autograd 
         image_features = image_features.detach().requires_grad_(False)
@@ -171,6 +173,7 @@ class GeoCLIP(nn.Module):
             
             # Update
             optimizer.step()
+            scheduler.step()
             
         # Enable autograd
         image_features = image_features.requires_grad_(True)
