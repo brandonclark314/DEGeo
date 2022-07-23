@@ -142,7 +142,7 @@ class GeoCLIP(nn.Module):
 
         return logits_per_image, logits_per_location, scene_preds, gps_0
 
-    def predict(self, image, steps = 50):    
+    def predict(self, image, steps = 100):    
         image_features = self.image_encoder(image)
         location = self.gps_mlp(image_features) # GPS_0
         location = normalize(location)
