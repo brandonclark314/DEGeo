@@ -121,7 +121,7 @@ class GeoCLIP(nn.Module):
     def forward(self, image, location):
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        gps_0 = self.gps_mlp(location_features)
+        gps_0 = self.gps_mlp(image_features)
         
         # Normalize features
         image_features = normalize(image_features)

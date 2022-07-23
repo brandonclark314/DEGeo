@@ -59,9 +59,8 @@ def log_sim_loss(y_true, y_pred, opt):
     y_true = y_true.float()
     y_pred = y_pred.float()
 
-    cos_sim = cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
-    km = torch.acos(cos_sim) * earth_radius
     cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
+    km = torch.acos(cos_sim) * earth_radius
 
     km = torch.acos(torch.mean(cos_sim)) * earth_radius
 
@@ -134,7 +133,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix.t(), targets).float()
-            gps_pred_loss, km = log_sim_loss(gps, gps_0, opt=opt)
+            gps_pred_loss, km = log_sim_loss(gps, gps_0, opt)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
