@@ -157,6 +157,7 @@ class GeoCLIP(nn.Module):
         
         for i in range(steps):
             print("Eval step: {}".format(i))
+            location = location.detach()
             optimizer.zero_grad()
             
             # Forward pass
@@ -164,7 +165,7 @@ class GeoCLIP(nn.Module):
             location_features = normalize(location_features)
             similarity = image_features @ location_features.t()
             loss = -torch.log(torch.sigmoid(similarity)).mean()
-            loss.backward(retain_graph=True)
+            loss.backward()
             
             # Update
             optimizer.step()
