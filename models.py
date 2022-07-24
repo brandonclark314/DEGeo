@@ -99,12 +99,14 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_img = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_loc = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
-        self.location_encoder = LocationEncoder(opt)
         self.image_encoder = ImageEncoder(opt)
+        self.location_encoder = LocationEncoder(opt)
         
-        self.momentum_location_encoder = LocationEncoder(opt)
         self.momentum_image_encoder = ImageEncoder(opt)
+        self.momentum_location_encoder = LocationEncoder(opt)
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -164,7 +166,8 @@ class GeoCLIP(nn.Module):
         
         # Compute Momentum Features
         with torch.no_grad():
-            self._momentum_update() # update the momentum encoders
+            if train:
+                self._momentum_update() # update the momentum encoders
             
             # Compute Momentum Features
             momentum_image_features = self.momentum_image_encoder(image)
@@ -188,14 +191,17 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
+        logit_scale_img = self.logit_scale_img.exp()
+        logit_scale_loc = self.logit_scale_loc.exp()
+        
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
         
         # Cosine similarity as logits (Image Features - Momentum Location Feature Queue)
-        logits_per_image_momentum = logit_scale * (image_features @ self.loc_queue.clone().detach())
+        logits_per_image_momentum = logit_scale_img * (image_features @ self.loc_queue.clone().detach())
         
         # Cosine similarity as logits (Location Features - Momentum Image Feature Queue)
-        logits_per_location_momentum = logit_scale * (location_features @ self.img_queue.clone().detach())
+        logits_per_location_momentum = logit_scale_loc * (location_features @ self.img_queue.clone().detach())
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
@@ -289,15 +295,15 @@ class ResNet101(nn.Module):
 
 if __name__ == "__main__":
     # Test vit_model with random input
-    model = GeoCLIP(opt=getopt())
+    opt = getopt()
+    model = GeoCLIP(opt=opt)
     model.eval()
-    
-    image = torch.randn(32, 3, 224, 224)
-    location = torch.randn(32, 3)
     
     # model = ViT()
     # model = ResNet18()
     for i in range(1):
+        image = torch.randn(32, 3, 224, 224)
+        location = torch.randn(32, 3)
         print("Image: ", i)
         with torch.no_grad():
             image_features, location_features, scenes_pred, image_features_momentum, location_features_momentum = model(image, location)
@@ -307,28 +313,30 @@ if __name__ == "__main__":
 
     # Plot Image features matrix as heatmap
     # criterion = torch.nn.BCELoss()
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss(reduction='none')
     
     # Get Targets (GPS Cosine Similarities)
-    gps_n = location / location.norm(dim=1, keepdim=True)
-    targets = (gps_n @ gps_n.t())
+    targets = torch.arange(opt.batch_size, dtype=torch.long)
 
     torch.set_printoptions(edgeitems=30)
+    
+    loss = criterion(image_features_momentum, targets)
 
     # Compute the loss
-    loss = 0
-    img_loss = criterion(image_features, targets).float()
-    gps_loss = criterion(location_features, targets).float()
+    # loss = 0
+    # img_loss = criterion(image_features_momentum, targets).float()
+    # gps_loss = criterion(location_features_momentum, targets).float()
 
-    loss = (img_loss + gps_loss) / 2
+    # loss = (img_loss + gps_loss) / 2
     
-    print(img_loss)
-    print(gps_loss)
-    print(loss)
+    # print(img_loss)
+    # print(gps_loss)
+    # print(loss)
 
+    print(loss)
     
     plt.figure(figsize=(10,10))
-    plt.imshow(location_features_momentum, cmap='viridis', interpolation='none')
+    plt.imshow(image_features_momentum, cmap='viridis', interpolation='none')
     print(location_features_momentum.shape)
     plt.colorbar()
     plt.show()

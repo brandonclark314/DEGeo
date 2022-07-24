@@ -26,11 +26,11 @@ def getopt():
     opt.scene = False
     opt.hier_eval = True
 
-    opt.lr = 3e-5
+    opt.lr = 1e-2
     opt.step_size = 3
     opt.partition = 'fine'
 
-    opt.queue_bs_multiplier = 100
+    opt.queue_bs_multiplier = 1
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'

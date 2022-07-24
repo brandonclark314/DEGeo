@@ -166,7 +166,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if i % val_cycle == 0:
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
-                wandb.log({"Image Loss": img_loss.item()})
+                wandb.log({"Image Loss": img_loss.item()}) 
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
