@@ -305,7 +305,7 @@ if __name__ == "__main__":
     
     # model = ViT()
     # model = ResNet18()
-    for i in range(2):
+    for i in range(5):
         image = torch.randn(32, 3, 224, 224)
         location = torch.randn(32, 3)
         print("Image: ", i)
