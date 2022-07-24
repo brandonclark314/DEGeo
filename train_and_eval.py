@@ -80,8 +80,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
     losses = []
     running_loss = 0.0
     dataset_size = 0
-    gps_multiplier = model.GPS_Aug_Multiplier
-
 
     val_cycle = (len(data_iterator.dataset.data) // (opt.batch_size * 25))
     print("Outputting loss every", val_cycle, "batches")
