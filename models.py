@@ -184,10 +184,10 @@ class GeoCLIP(nn.Module):
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
-        
-        if train:
-            # Add Encodings to Queue
-            self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
+            
+        # Get Positive + Negatives
+        image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
+        location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
 
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
@@ -197,11 +197,15 @@ class GeoCLIP(nn.Module):
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
         
-        # Cosine similarity as logits (Image Features - Momentum Location Feature Queue)
-        logits_per_image_momentum = logit_scale_img * (image_features @ self.loc_queue.clone().detach())
+        # Cosine similarity (Image Features - Momentum Location Feature Queue)
+        logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
         
-        # Cosine similarity as logits (Location Features - Momentum Image Feature Queue)
-        logits_per_location_momentum = logit_scale_loc * (location_features @ self.img_queue.clone().detach())
+        # Cosine similarity (Location Features - Momentum Image Feature Queue)
+        logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+        
+        if train:
+            # Add Encodings to Queue
+            self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
@@ -301,7 +305,7 @@ if __name__ == "__main__":
     
     # model = ViT()
     # model = ResNet18()
-    for i in range(1):
+    for i in range(2):
         image = torch.randn(32, 3, 224, 224)
         location = torch.randn(32, 3)
         print("Image: ", i)
