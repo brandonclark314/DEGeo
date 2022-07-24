@@ -247,7 +247,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred, \
-                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations, train=False)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
