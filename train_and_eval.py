@@ -104,11 +104,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             fine = fine.to(opt.device)
         
         imgs = imgs.to(opt.device)
-        
-        # Add extra GPS Coordinates
-        extra_gps = getRandomCoordinates(batch_size * gps_multiplier).to(opt.device)
-        gps_aug = torch.cat((gps, extra_gps), dim=0)
-        
+    
         scene_labels3 = scenes[:, 0]
         scene_labels16 = scenes[:, 1]
         scene_labels365 = scenes[:, 2]
@@ -120,9 +116,11 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_0 = model(imgs, gps_aug)
-            targets = torch.cat((torch.eye(batch_size), torch.zeros(batch_size,
-                                                                    batch_size * gps_multiplier)), dim=1).to(opt.device)
+            img_matrix, gps_matrix, scene_pred, \
+            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps)
+
+            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+            
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
 
@@ -131,9 +129,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':
-            img_loss = img_criterion(img_matrix, targets).float()
-            gps_loss = img_criterion(gps_matrix.t(), targets).float()
-            gps_pred_loss, km = log_sim_loss(gps, gps_0, opt)
+            img_loss = img_criterion(img_momentum_matrix, targets).float()
+            gps_loss = img_criterion(gps_momentum_matrix, targets).float()
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -142,7 +139,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_pred_loss) / 3
+                loss = (img_loss + gps_loss) / 2
         if opt.traintype == 'Classification':
             loss1 = img_criterion(out1, coarse)
             loss2 = img_criterion(out2, medium)
@@ -172,7 +169,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()})
-                wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
@@ -250,7 +246,8 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred, \
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
@@ -271,48 +268,6 @@ def eval_images(val_dataloader, model, epoch, opt):
     accuracies = []
     for dis in opt.distances:
         acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
-        print("Accuracy", dis, "is", acc)
-        wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
-        
-def distance_accuracy_direct(targets, preds, dis=2500, set='im2gps3k', trainset='train', opt=None):
-    ground_truth = [(x[0], x[1]) for x in targets]   
-
-    total = len(ground_truth)
-    correct = 0
-
-    for i in range(len(ground_truth)):
-
-        if GD(preds[i], ground_truth[i]).km <= dis:
-            correct += 1
-
-    return correct / total
-        
-def eval_images_SGD(val_dataloader, model, epoch, opt):
-    bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
-
-    preds = []
-    targets = []
-
-    model.eval()
-    
-    for i, (imgs, labels, scenes) in bar:
-        labels = labels.cpu().numpy()
-        imgs = imgs.to(opt.device)
-        
-        outs = model.predict(imgs).detach().cpu().numpy()
-        
-        # Save the predictions and targets
-        targets.append(labels)
-        preds.append(outs)
-
-    preds = np.concatenate(preds, axis=0)
-    targets = np.concatenate(targets, axis=0)
-    
-    model.train()
-
-    accuracies = []
-    for dis in opt.distances:
-        acc = distance_accuracy_direct(targets, preds, dis=dis, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 

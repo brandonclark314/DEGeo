@@ -26,9 +26,6 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
-    
-def normalize(x):
-    return x / x.norm(dim=1, keepdim=True)
 
 def toCartesian(L):
     L = L * np.pi / 180
@@ -59,6 +56,8 @@ class LocationEncoder(nn.Module):
         super().__init__()
         self.opt = opt
 
+        self.queue = []
+
         self.LocEnc2500k = getLocationEncoder(2500)
         self.LocEnc750k = getLocationEncoder(750)
         self.LocEnc200k = getLocationEncoder(200)
@@ -73,12 +72,7 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        if stochastic:
-            w = torch.rand(5)
-            w = w / w.sum()
-            location_features = (w[0] * L2500k + w[1] * L750k + w[2] * L200k + w[3] * L25k + w[4] * L1k)
-        else:
-            location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
 
         return location_features
     
@@ -96,91 +90,113 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None):
+    def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
+        self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
+        self.m = 0.999 # MoCo Momentum
+        self.T = 0.07 # Softmax temperature
+        
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.GPS_Aug_Multiplier = 4
         
         self.location_encoder = LocationEncoder(opt)
         self.image_encoder = ImageEncoder(opt)
         
-        self.gps_mlp = nn.Sequential(nn.Linear(512, 256),
-                                     nn.ReLU(),
-                                     nn.Linear(256, 256),
-                                     nn.ReLU(),
-                                     nn.Linear(256, 256),
-                                     nn.ReLU(),
-                                     nn.Linear(256, 3))
+        self.momentum_location_encoder = LocationEncoder(opt)
+        self.momentum_image_encoder = ImageEncoder(opt)
+        
+        # Copy encoders to momentum encoders
+        for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
+            param_m.data.copy_(param.data)  # initialize
+            param_m.requires_grad = False  # not update by gradient
+        
+        for param, param_m in zip(self.location_encoder.parameters(), self.momentum_location_encoder.parameters()):
+            param_m.data.copy_(param.data)
+            param_m.requires_grad = False
+        
+        # create the queues
+        self.register_buffer("img_queue", torch.randn(dim, self.K))
+        self.img_queue = nn.functional.normalize(self.img_queue, dim=0)
+        self.register_buffer("img_queue_ptr", torch.zeros(1, dtype=torch.long))
+        
+        self.register_buffer("loc_queue", torch.randn(dim, self.K))
+        self.loc_queue = nn.functional.normalize(self.loc_queue, dim=0)
+        self.register_buffer("loc_queue_ptr", torch.zeros(1, dtype=torch.long))
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(512, 3)
             self.scene_predictor16 = nn.Linear(512, 16)
             self.scene_predictor365 = nn.Linear(512, 365)
+            
+    @torch.no_grad()
+    def _momentum_update(self):
+        # Update Image Momentum Encoder
+        for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
+            param_m.data = param_m.data * self.m + param.data * (1. - self.m)
+            
+        # Update Location Momentum Encoder
+        for param, param_m in zip(self.location_encoder.parameters(), self.momentum_location_encoder.parameters()):
+            param_m.data = param_m.data * self.m + param.data * (1. - self.m)
+            
+    @torch.no_grad()
+    def _dequeue_and_enqueue(self, img_keys, loc_keys):
+        batch_size = img_keys.shape[0]
+
+        img_ptr = int(self.img_queue_ptr)
+        loc_ptr = int(self.loc_queue_ptr)
+        
+        assert self.K % batch_size == 0  # for simplicity
+
+        # replace the keys at ptr (dequeue and enqueue)
+        self.img_queue[:, img_ptr:img_ptr + batch_size] = img_keys.T
+        img_ptr = (img_ptr + batch_size) % self.K  # move pointer
+        self.img_queue_ptr[0] = img_ptr
+        
+        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys.T
+        loc_ptr = (loc_ptr + batch_size) % self.K  # move pointer
+        self.loc_queue_ptr[0] = loc_ptr
                                              
     def forward(self, image, location):
+        # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        gps_0 = self.gps_mlp(image_features)
+        
+        # Compute Momentum Features
+        with torch.no_grad():
+            self._momentum_update() # update the momentum encoders
+            
+            # Compute Momentum Features
+            momentum_image_features = self.momentum_image_encoder(image)
+            momentum_location_features = self.momentum_location_encoder(location)
         
         # Normalize features
-        image_features = normalize(image_features)
-        location_features = normalize(location_features)
-        gps_0 = normalize(gps_0)
+        image_features = F.normalize(image_features, dim=1)
+        location_features = F.normalize(location_features, dim=1)
+        momentum_image_features = F.normalize(momentum_image_features, dim=1)
+        momentum_location_features = F.normalize(momentum_location_features, dim=1)
         scene_preds = None
         
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
+            
+        # Add Encodings to Queue
+        self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        # Cosine similarity as logits
+        # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
-        
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
+        
+        # Cosine similarity as logits (Image Features - Momentum Location Feature Queue)
+        logits_per_image_momentum = logit_scale * (momentum_image_features @ self.loc_queue.clone().detach())
+        
+        # Cosine similarity as logits (Location Features - Momentum Image Feature Queue)
+        logits_per_location_momentum = logit_scale * (momentum_location_features @ self.img_queue.clone().detach())
 
-        return logits_per_image, logits_per_location, scene_preds, gps_0
-
-    def predict(self, image, steps = 200):    
-        image_features = self.image_encoder(image)
-        location = self.gps_mlp(image_features) # GPS_0
-        location = normalize(location)
-        location = toLatLon(location)
-        location = torch.nn.Parameter(location.data, requires_grad=True)
-        image_features = normalize(image_features)
-        
-        optimizer = torch.optim.SGD([location], lr=0.001, momentum=0.9)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
-        
-        # Disable autograd 
-        image_features = image_features.detach().requires_grad_(False)
-        for param in self.location_encoder.parameters():
-            param.requires_grad_(False)
-    
-        for i in range(steps):
-            print("Eval step: {}".format(i))
-            location = location.detach().requires_grad_(True)
-            optimizer.zero_grad()
-            
-            # Forward pass
-            location_features = self.location_encoder(toCartesian(location), stochastic=True)
-            location_features = normalize(location_features)
-            similarity = image_features @ location_features.t()
-            loss = -torch.log(torch.sigmoid(similarity)).mean()
-            loss.backward()
-            
-            # Update
-            optimizer.step()
-            scheduler.step()
-            
-        # Enable autograd
-        image_features = image_features.requires_grad_(True)
-        for param in self.location_encoder.parameters():
-            param.requires_grad_(True)
-        
-        return location.data
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):
@@ -269,16 +285,21 @@ class ResNet101(nn.Module):
 
         return coarse_out, medium_out, fine_out
 
+
 if __name__ == "__main__":
     # Test vit_model with random input
-    image = torch.randn(10, 3, 224, 224)
-    location = torch.randn(10, 3)
     model = GeoCLIP(opt=getopt())
+    model.eval()
+    
+    image = torch.randn(32, 3, 224, 224)
+    location = torch.randn(32, 3)
+    
     # model = ViT()
     # model = ResNet18()
-    model.eval()
-    with torch.no_grad():
-        image_features, location_features, scenes_preds, gps_0 = model(image, location)
+    for i in range(1):
+        print("Image: ", i)
+        with torch.no_grad():
+            image_features, location_features, scenes_pred, image_features_momentum, location_features_momentum = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
@@ -303,14 +324,13 @@ if __name__ == "__main__":
     print(img_loss)
     print(gps_loss)
     print(loss)
-    
-    print(model.predict(image))
-    
-    print(toLatLon(gps_0))
+
     
     plt.figure(figsize=(10,10))
-    plt.imshow(image_features, cmap='viridis')
+    plt.imshow(location_features_momentum, cmap='viridis', interpolation='none')
+    print(location_features_momentum.shape)
     plt.colorbar()
     plt.show()
     
+
     

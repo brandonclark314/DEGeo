@@ -30,6 +30,7 @@ def getopt():
     opt.step_size = 3
     opt.partition = 'fine'
 
+    opt.queue_bs_multiplier = 100
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
