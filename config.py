@@ -15,18 +15,18 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K SGD 256 100k.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K Adam 256 100k.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Momentum SGD (256) x100'
+    opt.description = 'GeoCLIP100K Momentum Adam (256) x100'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False
     opt.hier_eval = True
 
-    opt.lr = 1e-2
+    opt.lr = 3e-5
     opt.step_size = 3
     opt.partition = 'fine'
 
