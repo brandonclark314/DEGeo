@@ -192,10 +192,10 @@ class GeoCLIP(nn.Module):
         logits_per_location = logits_per_image.t()
         
         # Cosine similarity as logits (Image Features - Momentum Location Feature Queue)
-        logits_per_image_momentum = logit_scale * (momentum_image_features @ self.loc_queue.clone().detach())
+        logits_per_image_momentum = logit_scale * (image_features @ self.loc_queue.clone().detach())
         
         # Cosine similarity as logits (Location Features - Momentum Image Feature Queue)
-        logits_per_location_momentum = logit_scale * (momentum_location_features @ self.img_queue.clone().detach())
+        logits_per_location_momentum = logit_scale * (location_features @ self.img_queue.clone().detach())
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
