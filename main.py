@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 import dataloader
-from train_and_eval import eval_images_SGD, train_images, eval_images
+from train_and_eval import train_images, eval_images
 
 import wandb
 
