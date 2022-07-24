@@ -26,7 +26,7 @@ def getopt():
     opt.scene = False
     opt.hier_eval = True
 
-    opt.lr = 1e-2
+    opt.lr = 3e-5
     opt.step_size = 3
     opt.partition = 'fine'
 

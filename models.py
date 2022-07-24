@@ -64,7 +64,7 @@ class LocationEncoder(nn.Module):
         self.LocEnc25k = getLocationEncoder(25)
         self.LocEnc1k = getLocationEncoder(1)
         
-    def forward(self, location, stochastic=False):
+    def forward(self, location):
         location = location.float()
         L2500k = self.LocEnc2500k(location)
         L750k = self.LocEnc750k(location)
