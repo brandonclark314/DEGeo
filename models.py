@@ -157,7 +157,7 @@ class GeoCLIP(nn.Module):
         loc_ptr = (loc_ptr + batch_size) % self.K  # move pointer
         self.loc_queue_ptr[0] = loc_ptr
                                              
-    def forward(self, image, location):
+    def forward(self, image, location, train=True):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
@@ -181,9 +181,10 @@ class GeoCLIP(nn.Module):
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
-            
-        # Add Encodings to Queue
-        self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
+        
+        if train:
+            # Add Encodings to Queue
+            self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
