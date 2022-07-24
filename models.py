@@ -153,7 +153,7 @@ class GeoCLIP(nn.Module):
         img_ptr = (img_ptr + batch_size) % self.K  # move pointer
         self.img_queue_ptr[0] = img_ptr
         
-        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys
+        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys.T
         loc_ptr = (loc_ptr + batch_size) % self.K  # move pointer
         self.loc_queue_ptr[0] = loc_ptr
                                              
