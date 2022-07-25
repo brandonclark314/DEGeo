@@ -74,7 +74,7 @@ class LocationEncoder(nn.Module):
         
         # Weights Proportional to Distance
         W = torch.Tensor([2500, 750, 200, 25, 1])
-        W = F.normalize(W)
+        W = W / W.sum()
         
         location_features = W[0] * L2500k + W[1] * L750k + W[2] * L200k + W[3] * L25k + W[4] * L1k
 
