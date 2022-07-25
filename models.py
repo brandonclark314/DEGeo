@@ -72,11 +72,7 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        # Weights Proportional to Distance
-        W = torch.Tensor([2500, 750, 200, 25, 1])
-        W = W / W.sum()
-        
-        location_features = W[0] * L2500k + W[1] * L750k + W[2] * L200k + W[3] * L25k + W[4] * L1k
+        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
 
         return location_features
     
@@ -109,14 +105,6 @@ class GeoCLIP(nn.Module):
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
-        
-        self.gps_origin_encoder = nn.Sequential(nn.Linear(512, 256),
-                                                nn.ReLU(),
-                                                nn.Linear(256, 256),
-                                                nn.ReLU(),
-                                                nn.Linear(256, 256),
-                                                nn.ReLU(),
-                                                nn.Linear(256, 3))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -173,7 +161,7 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        gps_origin = self.gps_origin_encoder(location_features)
+        # gps_origin = self.gps_origin_encoder(location_features)
         
         # Compute Momentum Features
         with torch.no_grad():
@@ -189,7 +177,7 @@ class GeoCLIP(nn.Module):
         location_features = F.normalize(location_features, dim=1)
         momentum_image_features = F.normalize(momentum_image_features, dim=1)
         momentum_location_features = F.normalize(momentum_location_features, dim=1)
-        gps_origin = F.normalize(gps_origin, dim=1)
+        # gps_origin = F.normalize(gps_origin, dim=1)
         scene_preds = None
         
         if self.opt.scene:
@@ -217,7 +205,7 @@ class GeoCLIP(nn.Module):
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, gps_origin, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):
