@@ -99,6 +99,8 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_img = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_loc = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
