@@ -1,5 +1,7 @@
 from importlib.metadata import requires
 import sched
+
+from zmq import device
 from transformers import ViTModel
 from transformers import ResNetForImageClassification as ResNet
 
@@ -169,12 +171,13 @@ class GeoCLIP(nn.Module):
             
     @torch.no_grad()
     def _dequeue_and_enqueue(self, img_keys, loc_keys):
-        batch_size = self.opt.batch_size
+        opt = self.opt
+        batch_size = opt.batch_size
         
         if (img_keys.shape[0] != batch_size) or (loc_keys.shape[0] != batch_size):
             # Append Random Keys to the Queue 
-            img_keys = torch.cat([img_keys, F.normalize(torch.randn(512, batch_size - img_keys.shape[0]), dim=0)], dim=1)
-            loc_keys = torch.cat([loc_keys, F.normalize(torch.randn(512, batch_size - loc_keys.shape[0]), dim=0)], dim=1)
+            img_keys = torch.cat([img_keys, F.normalize(torch.randn(512, batch_size - img_keys.shape[0]), dim=0).to(opt.device)], dim=1)
+            loc_keys = torch.cat([loc_keys, F.normalize(torch.randn(512, batch_size - loc_keys.shape[0]), dim=0).to(opt.device)], dim=1)
 
         img_ptr = int(self.img_queue_ptr)
         loc_ptr = int(self.loc_queue_ptr)
