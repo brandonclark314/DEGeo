@@ -117,7 +117,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_mean_pred, gps_sigma_pred, \
+            img_matrix, gps_matrix, scene_pred, \
             img_momentum_matrix, gps_momentum_matrix = model(imgs, gps)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
