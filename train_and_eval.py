@@ -139,6 +139,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             else:
                 loss = (img_loss + gps_loss) / 2
         if opt.traintype == 'Classification':
+            
             loss1 = img_criterion(out1, coarse)
             loss2 = img_criterion(out2, medium)
             loss3 = img_criterion(out3, fine)
@@ -195,6 +196,9 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     elif opt.partition == '3K':
         predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False) 
         predictions = [predictions[i] for i in preds]
+    elif opt.partition == '26K':
+        predictions = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=False) 
+        predictions = [predictions[i] for i in preds]
     elif opt.partition == 'Mix':
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False)
@@ -224,6 +228,8 @@ def eval_images(val_dataloader, model, epoch, opt):
         locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
+    elif opt.partition == '26K':
+        locations = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=True)
     elif opt.partition == 'Mix':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))

@@ -20,10 +20,13 @@ def getLocationEncoder(km):
     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
                          nn.Linear(512, 1024),
+                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
+                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
+                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
 

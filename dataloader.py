@@ -187,6 +187,25 @@ def get_yfcc26k_test(classfile="yfcc25600_places365.csv", opt=None, cartesian_co
     print("test")
     return fnames, classes, scenes
 
+def get_yfcc26k_test_classes(classfile="yfcc25600_places365.csv", opt=None, cartesian_coords=False):
+    class_info = pd.read_csv(opt.resources + classfile)
+    base_folder = opt.yfcc26k
+
+    classes = []
+
+    for row in class_info.iterrows():
+        filename = base_folder + row[1]['IMG_ID']
+        if exists(filename):            
+            latitude = float(row[1]['LAT'])
+            longitude = float(row[1]['LON'])
+
+            if cartesian_coords:
+                classes.append(toCartesian(latitude, longitude))
+            else:
+                classes.append([latitude, longitude])
+    
+    return classes
+
 
 def read_frames(fname, one_frame=False):
     path = glob.glob(fname + '/*.jpg')
