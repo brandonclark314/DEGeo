@@ -130,7 +130,6 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
-        self.gps_decoder = GPSGaussianDecoder(opt)
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
@@ -190,7 +189,6 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        gps_mean, gps_sigma = self.gps_decoder(image_features)
         
         # Compute Momentum Features
         with torch.no_grad():
@@ -233,7 +231,7 @@ class GeoCLIP(nn.Module):
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, gps_mean, gps_sigma, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):

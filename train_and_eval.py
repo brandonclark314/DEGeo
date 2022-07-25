@@ -132,16 +132,13 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
-            gps_gaussian_loss, km = getGPSGaussianLoss(gps, gps_mean_pred, gps_sigma_pred)
         
             if opt.scene:
-                scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
-                              scene_criterion(scene_pred[1], scene_labels16).float() +
-                              scene_criterion(scene_pred[2], scene_labels365).float()) / 3
+                scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_gaussian_loss) / 3
+                loss = (img_loss + gps_loss) / 2
                 
         if opt.traintype == 'Classification':
             
@@ -258,7 +255,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, gps_mean_pred, gps_sigma_pred,\
+                logits_per_image, logits_per_location, scene_pred,\
                 img_momentum_matrix, gps_momentum_matrix = model(imgs, locations, train=False)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
