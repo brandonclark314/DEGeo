@@ -68,7 +68,7 @@ def getGPSGaussianLoss(gps_obs, gps_mean_pred, gps_sigma_pred):
     
     km = torch.mean(torch.acos(nn.CosineSimilarity()(gps_obs, gps_mean_pred)) * earth_radius)
     
-    gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred)))
+    gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred))).float()
 
     return gps_gaussian_loss, km
 
@@ -132,7 +132,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
-            gps_gaussian_loss, km = getGPSGaussianLoss(gps, gps_mean_pred, gps_sigma_pred).float()
+            gps_gaussian_loss, km = getGPSGaussianLoss(gps, gps_mean_pred, gps_sigma_pred)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
