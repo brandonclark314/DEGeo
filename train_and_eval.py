@@ -61,9 +61,9 @@ def log_sim_loss(y_true, y_pred, opt):
 
     cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
     
-    km = torch.mean(torch.acos(cos_sim)) * earth_radius
+    km = torch.mean(torch.acos(cos_sim) * earth_radius)
 
-    cos_sim_squeezed = torch.nn.Sigmoid(cos_sim )
+    cos_sim_squeezed = torch.sigmoid(cos_sim)
     log_sim_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
 
     return log_sim_loss, km
@@ -128,7 +128,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
-            gps_origin_loss = log_sim_loss(gps, gps_origin, opt)
+            gps_origin_loss, km = log_sim_loss(gps, gps_origin, opt)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -170,7 +170,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Pred. Arc": gps_o_loss.item()})
+                wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:

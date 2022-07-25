@@ -15,7 +15,7 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K Adam 32 LocWeights GPS 100k.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K (RFF)/GeoCLIP100K Adam (32) LocWeights GPS 100k.pth"
 
     opt.size = 224
     opt.n_epochs = 64
@@ -30,7 +30,7 @@ def getopt():
     opt.step_size = 3
     opt.partition = 'fine'
 
-    opt.queue_bs_multiplier = 100
+    opt.queue_bs_multiplier = 100 
     opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
