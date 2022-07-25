@@ -103,14 +103,20 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_img = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_loc = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
+        
+        self.gps_origin_encoder = nn.Sequential(nn.Linear(512, 256),
+                                                nn.ReLU(),
+                                                nn.Linear(256, 256),
+                                                nn.ReLU(),
+                                                nn.Linear(256, 256),
+                                                nn.ReLU(),
+                                                nn.Linear(256, 3))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -167,6 +173,7 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
+        gps_origin = self.gps_origin_encoder(location_features)
         
         # Compute Momentum Features
         with torch.no_grad():
@@ -182,6 +189,7 @@ class GeoCLIP(nn.Module):
         location_features = F.normalize(location_features, dim=1)
         momentum_image_features = F.normalize(momentum_image_features, dim=1)
         momentum_location_features = F.normalize(momentum_location_features, dim=1)
+        gps_origin = F.normalize(gps_origin, dim=1)
         scene_preds = None
         
         if self.opt.scene:
@@ -195,8 +203,6 @@ class GeoCLIP(nn.Module):
 
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
-        logit_scale_img = self.logit_scale_img.exp()
-        logit_scale_loc = self.logit_scale_loc.exp()
         
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
@@ -211,7 +217,7 @@ class GeoCLIP(nn.Module):
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, gps_origin, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):

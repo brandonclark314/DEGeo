@@ -60,11 +60,10 @@ def log_sim_loss(y_true, y_pred, opt):
     y_pred = y_pred.float()
 
     cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
-    km = torch.acos(cos_sim) * earth_radius
+    
+    km = torch.mean(torch.acos(cos_sim) * earth_radius)
 
-    km = torch.acos(torch.mean(cos_sim)) * earth_radius
-
-    cos_sim_squeezed = (cos_sim + 1) / 2
+    cos_sim_squeezed = torch.sigmoid(cos_sim)
     log_sim_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
 
     return log_sim_loss, km
@@ -114,7 +113,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, \
+            img_matrix, gps_matrix, scene_pred, gps_origin, \
             img_momentum_matrix, gps_momentum_matrix = model(imgs, gps)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
@@ -129,6 +128,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
+            gps_origin_loss, km = log_sim_loss(gps, gps_origin, opt)
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -137,7 +137,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = (img_loss + gps_loss + gps_origin_loss) / 3
+                
         if opt.traintype == 'Classification':
             
             loss1 = img_criterion(out1, coarse)
@@ -169,6 +170,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
+                wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
@@ -251,7 +253,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, \
+                logits_per_image, logits_per_location, scene_pred, gps_origin, \
                 img_momentum_matrix, gps_momentum_matrix = model(imgs, locations, train=False)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
