@@ -177,8 +177,8 @@ class GeoCLIP(nn.Module):
         if (img_keys.shape[0] != batch_size) or (loc_keys.shape[0] != batch_size):
             # Append Random Keys to the Queue 
             print(img_keys.shape, loc_keys.shape, flush=True)
-            img_keys = torch.cat([img_keys, F.normalize(512, torch.randn(batch_size - img_keys.shape[0]), dim=0).to(opt.device)], dim=1)
-            loc_keys = torch.cat([loc_keys, F.normalize(512, torch.randn(batch_size - loc_keys.shape[0]), dim=0).to(opt.device)], dim=1)
+            img_keys = torch.cat([img_keys, F.normalize(torch.randn((512, batch_size - img_keys.shape[0])), dim=0).to(opt.device)], dim=1)
+            loc_keys = torch.cat([loc_keys, F.normalize(torch.randn((512, batch_size - loc_keys.shape[0])), dim=0).to(opt.device)], dim=1)
             
 
         img_ptr = int(self.img_queue_ptr)
