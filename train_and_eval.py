@@ -1,4 +1,5 @@
-from cmath import exp
+from cmath import acos, exp
+from termios import TIOCSERCONFIG
 import time
 from scipy.spatial.distance import cdist
 from sklearn.metrics import accuracy_score, f1_score
@@ -9,6 +10,7 @@ from infonce import InfoNCE
 
 # from einops import rearrange
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import pickle
 
@@ -54,19 +56,22 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
-def log_sim_loss(y_true, y_pred, opt):
+def getLikelihood(x, mu, sigma):
+    """Return likelihood of 3D X given mu and sigma"""
+    return 1 / (sigma * (2 * np.pi) ** 0.5) * torch.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+def getGPSGaussianLoss(gps_obs, gps_mean_pred, gps_sigma_pred):
     earth_radius = 6371
-    y_true = y_true.float()
-    y_pred = y_pred.float()
-
-    cos_sim = torch.nn.CosineSimilarity()(y_true, y_pred)
+    gps_obs = gps_obs.float()
+    gps_mean_pred = gps_mean_pred.float()
+    gps_sigma_pred = gps_sigma_pred.float()
     
-    km = torch.mean(torch.acos(cos_sim) * earth_radius)
+    km = torch.mean(torch.acos(nn.CosineSimilarity()(gps_obs, gps_mean_pred)) * earth_radius)
+    wandb.log({"GPS Pred. Arc": km.item()})
+    
+    gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred)))
 
-    cos_sim_squeezed = torch.sigmoid(cos_sim)
-    log_sim_loss = torch.mean(-torch.log(cos_sim_squeezed)).to(opt.device)
-
-    return log_sim_loss, km
+    return gps_gaussian_loss
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
@@ -113,7 +118,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, \
+            img_matrix, gps_matrix, scene_pred, gps_mean_pred, gps_sigma_pred, \
             img_momentum_matrix, gps_momentum_matrix = model(imgs, gps)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
@@ -128,7 +133,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
-            # gps_origin_loss, km = log_sim_loss(gps, opt)
+            gps_gaussian_loss = getGPSGaussianLoss(gps, gps_mean_pred, gps_sigma_pred).float()
         
             if opt.scene:
                 scene_loss = (scene_criterion(scene_pred[0], scene_labels3).float() +
@@ -137,7 +142,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = (img_loss + gps_loss + gps_gaussian_loss) / 3
                 
         if opt.traintype == 'Classification':
             
@@ -170,7 +175,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Pred. Arc": km.item()})
+                wandb.log({"GPS Gaussian Loss": gps_gaussian_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
@@ -253,7 +258,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, \
+                logits_per_image, logits_per_location, scene_pred, gps_mean_pred, gps_sigma_pred,\
                 img_momentum_matrix, gps_momentum_matrix = model(imgs, locations, train=False)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)

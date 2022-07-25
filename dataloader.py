@@ -141,7 +141,6 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
     return fnames, classes, scenes
 
 def get_im2gps3k_test_classes(classfile="im2gps3k_places365.csv", opt=None, cartesian_coords=False):
-
     class_info = pd.read_csv(opt.resources + classfile)
     base_folder = opt.im2gps3k
 

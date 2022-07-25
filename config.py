@@ -1,5 +1,6 @@
 import argparse
 import multiprocessing
+from pickle import FALSE
 #import argparge
 import torch
 
@@ -15,20 +16,20 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Momentum x100 Adam_25_0.27.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x100 GPSGaussian Loss.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (32) x100 Test 25 Epochs'
+    opt.description = 'GeoCLIP100K Adam (32) x100 GPSGaussian loss'
     opt.archname = 'CLIP'
-    opt.evaluate = True
+    opt.evaluate = False
     opt.scene = False
     opt.hier_eval = True
 
     opt.lr = 3e-5
     opt.step_size = 3
-    opt.partition = 'Mix'
+    opt.partition = 'fine'
 
     opt.queue_bs_multiplier = 100 
     opt.batch_size = 32

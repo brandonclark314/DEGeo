@@ -88,6 +88,34 @@ class ImageEncoder(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
+    
+class GPSGaussianDecoder(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+        self.gps_decoder = nn.Sequential(nn.Linear(512, 256),
+                                          nn.ReLU(),
+                                          nn.Linear(256, 256),
+                                          nn.ReLU(),
+                                          nn.Linear(256, 256),
+                                          nn.ReLU(),
+                                          nn.Linear(256, 256))
+        
+        self.gps_decoder_mean = nn.Sequential(nn.Linear(256, 3))
+        self.gps_decoder_sigma = nn.Sequential(nn.Linear(256, 1))
+        
+    def forward(self, gps_features):
+        gps_features = self.gps_decoder(gps_features)
+        gps_mean = self.gps_decoder_mean(gps_features)
+        gps_sigma = self.gps_decoder_sigma(gps_features)
+        
+        # Normalize Mean
+        gps_mean = F.normalize(gps_mean, dim=1)
+        
+        # Make Sigma Positive
+        gps_sigma = torch.exp(gps_sigma)
+        
+        return gps_mean, gps_sigma
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -99,11 +127,10 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_img = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_loc = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
+        self.gps_decoder = GPSGaussianDecoder(opt)
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
@@ -163,7 +190,7 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        # gps_origin = self.gps_origin_encoder(location_features)
+        gps_mean, gps_sigma = self.gps_decoder(image_features)
         
         # Compute Momentum Features
         with torch.no_grad():
@@ -179,7 +206,6 @@ class GeoCLIP(nn.Module):
         location_features = F.normalize(location_features, dim=1)
         momentum_image_features = F.normalize(momentum_image_features, dim=1)
         momentum_location_features = F.normalize(momentum_location_features, dim=1)
-        # gps_origin = F.normalize(gps_origin, dim=1)
         scene_preds = None
         
         if self.opt.scene:
@@ -207,7 +233,7 @@ class GeoCLIP(nn.Module):
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, gps_mean, gps_sigma, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):
@@ -305,15 +331,17 @@ if __name__ == "__main__":
     
     # model = ViT()
     # model = ResNet18()
-    for i in range(5):
+    for i in range(1):
         image = torch.randn(32, 3, 224, 224)
         location = torch.randn(32, 3)
         print("Image: ", i)
         with torch.no_grad():
-            image_features, location_features, scenes_pred, image_features_momentum, location_features_momentum = model(image, location)
+            image_features, location_features, scenes_pred, gps_mean_pred, gps_sigma_pred, image_features_momentum, location_features_momentum = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
+    print(gps_mean_pred)
+    print(gps_sigma_pred)
 
     # Plot Image features matrix as heatmap
     # criterion = torch.nn.BCELoss()
