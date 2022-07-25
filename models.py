@@ -20,13 +20,10 @@ def getLocationEncoder(km):
     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
                          nn.Linear(512, 1024),
-                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
-                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
-                         nn.Dropout(0.2),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
 
@@ -75,7 +72,11 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        # Weights Proportional to Distance
+        W = torch.Tensor([2500, 750, 200, 25, 1])
+        W = F.normalize(W)
+        
+        location_features = W[0] * L2500k + W[1] * L750k + W[2] * L200k + W[3] * L25k + W[4] * L1k
 
         return location_features
     
