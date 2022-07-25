@@ -177,13 +177,14 @@ class GeoCLIP(nn.Module):
         assert self.K % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.img_queue[:, img_ptr:img_ptr + batch_size] = img_keys.T
         img_ptr = (img_ptr + batch_size) % self.K  # move pointer
+        self.img_queue[:, img_ptr:img_ptr + batch_size] = img_keys.T
         self.img_queue_ptr[0] = img_ptr
         
-        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys.T
         loc_ptr = (loc_ptr + batch_size) % self.K  # move pointer
+        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys.T
         self.loc_queue_ptr[0] = loc_ptr
+        
                                              
     def forward(self, image, location, train=True):
         # Compute Features
@@ -334,12 +335,10 @@ if __name__ == "__main__":
         location = torch.randn(32, 3)
         print("Image: ", i)
         with torch.no_grad():
-            image_features, location_features, scenes_pred, gps_mean_pred, gps_sigma_pred, image_features_momentum, location_features_momentum = model(image, location)
+            image_features, location_features, scenes_pred, image_features_momentum, location_features_momentum = model(image, location)
         
     print(image_features.dtype)
     print(location_features.dtype)
-    print(gps_mean_pred)
-    print(gps_sigma_pred)
 
     # Plot Image features matrix as heatmap
     # criterion = torch.nn.BCELoss()
