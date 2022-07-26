@@ -1,7 +1,6 @@
 from importlib.metadata import requires
 import sched
 
-from zmq import device
 from transformers import ViTModel
 from transformers import ResNetForImageClassification as ResNet
 
