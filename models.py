@@ -171,14 +171,9 @@ class GeoCLIP(nn.Module):
     @torch.no_grad()
     def _dequeue_and_enqueue(self, img_keys, loc_keys):
         opt = self.opt
+        img_batch_size = img_keys.shape[0]
+        loc_batch_size = loc_keys.shape[0]
         batch_size = opt.batch_size
-        
-        if (img_keys.shape[0] != batch_size) or (loc_keys.shape[0] != batch_size):
-            # Append Random Keys to the Queue 
-            print(img_keys.shape, loc_keys.shape, flush=True)
-            img_keys = torch.cat([img_keys, F.normalize(torch.randn((512, batch_size - img_keys.shape[0])), dim=0).to(opt.device)], dim=0)
-            loc_keys = torch.cat([loc_keys, F.normalize(torch.randn((512, batch_size - loc_keys.shape[0])), dim=0).to(opt.device)], dim=0)
-            
 
         img_ptr = int(self.img_queue_ptr)
         loc_ptr = int(self.loc_queue_ptr)
@@ -186,11 +181,11 @@ class GeoCLIP(nn.Module):
         assert self.K % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.img_queue[:, img_ptr:img_ptr + batch_size] = img_keys.T
+        self.img_queue[:, img_ptr:img_ptr + img_batch_size] = img_keys.T
         img_ptr = (img_ptr + batch_size) % self.K  # move pointer
         self.img_queue_ptr[0] = img_ptr
         
-        self.loc_queue[:, loc_ptr:loc_ptr + batch_size] = loc_keys.T
+        self.loc_queue[:, loc_ptr:loc_ptr + loc_batch_size] = loc_keys.T
         loc_ptr = (loc_ptr + batch_size) % self.K  # move pointer
         self.loc_queue_ptr[0] = loc_ptr
         
