@@ -56,14 +56,6 @@ def getRandomCoordinates(num_coords):
     coords = coords / coords.norm(dim=1, keepdim=True)
     return coords
 
-def getEpsilonGPS(GPS, km):
-    EarthPerimeter = 2 * np.pi * 6371
-    sigma = km / EarthPerimeter
-    
-    newGPS = F.normalize(torch.normal(GPS, sigma), dim=1)
-    
-    return newGPS
-
 def getLikelihood(x, mu, sigma):
     """Return likelihood of 3D X given mu and sigma"""
     return 
@@ -106,7 +98,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
 
         if opt.traintype == 'CLIP':
             gps = classes.to(opt.device)
-            gps = getEpsilonGPS(gps, km = 1) # Augment GPS 
         if opt.traintype == 'Classification':
             coarse = classes[:,0].type(torch.LongTensor)
             coarse = coarse.to(opt.device)
