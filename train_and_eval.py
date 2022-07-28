@@ -58,7 +58,7 @@ def getRandomCoordinates(num_coords):
 
 def getEpsilonGPS(GPS, km):
     EarthPerimeter = 2 * np.pi * 6371
-    sigma = EarthPerimeter / km
+    sigma = km / EarthPerimeter
     
     newGPS = F.normalize(torch.normal(GPS, sigma), dim=1)
     
