@@ -16,15 +16,15 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x100 Gaussian.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x100 FixTransform.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (32) x100 Gaussian'
+    opt.description = 'GeoCLIP100K Adam (32) x100 FixTransform'
     opt.archname = 'CLIP'
     opt.evaluate = False
-    opt.scene = True
+    opt.scene = False
     opt.hier_eval = True
 
     # opt.lr = 3e-5
