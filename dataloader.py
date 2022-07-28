@@ -75,12 +75,11 @@ def m16_val_transform():
     ])
     return m16_transform_list    
 
-def get_mp16_train(classfile='mp16_places365.csv', opt=None, cartesian_coords=True):
+def get_mp16_train(classfile="mp16_places365.csv", opt=None, cartesian_coords=True):
 
     class_info = pd.read_csv(opt.resources + classfile)
     data = json.load(open(opt.resources + 'mp16_places365_mapping_h3.json','r'))
 
-    #print("The classes should have been", class_info['34/8d/9055806529.jpg'])
     base_folder = opt.mp16folder
 
     fnames = []
@@ -96,6 +95,7 @@ def get_mp16_train(classfile='mp16_places365.csv', opt=None, cartesian_coords=Tr
             longitude = float(row[1]['LON'])
             
             scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
+             
             if opt.traintype ==  'CLIP':
                 if cartesian_coords:
                     classes.append(toCartesian(latitude, longitude))
@@ -227,7 +227,7 @@ class M16Dataset(Dataset):
         
         self.split = split 
         if split == 'train':
-            fnames, classes, scenes = get_mp16_train(opt=opt)
+            fnames, classes, scenes = get_mp16_train(classfile="mp16_places365.csv", opt=opt)
         if split == 'train1M':
             fnames, classes, scenes = get_mp16_train(classfile="mp16_places365_1M.csv", opt=opt)
         if split == 'train500K':

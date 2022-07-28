@@ -94,13 +94,13 @@ class GPSGaussianDecoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
-        self.gps_decoder = nn.Sequential(nn.Linear(512, 256),
+        self.gps_decoder = nn.Sequential(nn.Linear(512, 512),
                                           nn.ReLU(),
-                                          nn.Linear(256, 256),
+                                          nn.Linear(512, 512),
                                           nn.ReLU(),
-                                          nn.Linear(256, 256),
+                                          nn.Linear(512, 512),
                                           nn.ReLU(),
-                                          nn.Linear(256, 256))
+                                          nn.Linear(512, 512))
         
         self.gps_decoder_mean = nn.Sequential(nn.Linear(256, 3))
         self.gps_decoder_sigma = nn.Sequential(nn.Linear(256, 1))

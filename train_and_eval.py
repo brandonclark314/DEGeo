@@ -58,19 +58,22 @@ def getRandomCoordinates(num_coords):
 
 def getLikelihood(x, mu, sigma):
     """Return likelihood of 3D X given mu and sigma"""
-    return 1 / (sigma * (2 * np.pi) ** 0.5) * torch.exp(-0.5 * ((x - mu) / sigma) ** 2)
+    return 
 
-def getGPSGaussianLoss(gps_obs, gps_mean_pred, gps_sigma_pred):
-    earth_radius = 6371
-    gps_obs = gps_obs.float()
-    gps_mean_pred = gps_mean_pred.float()
-    gps_sigma_pred = gps_sigma_pred.float()
+# def getGPSGaussianLoss(gps_obs, gps_mean_pred, gps_sigma_pred):
+#     gps_obs = gps_obs.float()
+#     gps_mean_pred = gps_mean_pred.float()
+#     gps_sigma_pred = gps_sigma_pred.float()
     
-    km = torch.mean(torch.acos(nn.CosineSimilarity()(gps_obs, gps_mean_pred)) * earth_radius)
+#     gps_diff = -torch.log(nn.CosineSimilarity()(gps_obs, gps_mean_pred))
     
-    gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred))).float()
+#     likelihood = 1 / (sigma * (2 * np.pi) ** 0.5) * torch.exp(-0.5 * ((x - mu) / sigma) ** 2)
+    
+#     km = torch.mean(torch.acos(nn.CosineSimilarity()(gps_obs, gps_mean_pred)) * earth_radius)
+    
+#     gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred))).float()
 
-    return gps_gaussian_loss, km
+#     return gps_gaussian_loss, km
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
 
