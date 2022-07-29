@@ -180,7 +180,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if False and val_dataloader != None and i % val_cycle == 0:
+        if val_dataloader != None and i % (val_cycle * 100) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
