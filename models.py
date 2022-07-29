@@ -59,21 +59,21 @@ class LocationEncoder(nn.Module):
 
         self.queue = []
 
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
-        self.LocEnc25k = getLocationEncoder(25)
+        self.LocEnc10000k = getLocationEncoder(10000)
+        self.LocEnc1000k = getLocationEncoder(1000)
+        self.LocEnc100k = getLocationEncoder(100)
+        self.LocEnc10k = getLocationEncoder(10)
         self.LocEnc1k = getLocationEncoder(1)
         
     def forward(self, location):
         location = location.float()
-        L2500k = self.LocEnc2500k(location)
-        L750k = self.LocEnc750k(location)
-        L200k = self.LocEnc200k(location)
-        L25k = self.LocEnc25k(location)
+        L10000k = self.LocEnc10000k(location)
+        L1000k = self.LocEnc1000k(location)
+        L100k = self.LocEnc100k(location)
+        L10k = self.LocEnc10k(location)
         L1k = self.LocEnc1k(location)
         
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        location_features = (L10000k + L1000k + L100k + L10k + L1k) / 5
 
         return location_features
     
