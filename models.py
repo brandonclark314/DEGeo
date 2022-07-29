@@ -1,3 +1,4 @@
+import encodings
 from importlib.metadata import requires
 import sched
 
@@ -14,19 +15,6 @@ from torch.autograd import Variable
 import torchvision.models as models
 from config import getopt
 from infonce import InfoNCE
-
-def getLocationEncoder(km):
-    Earth_Diameter = 12742
-    sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
-    return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 512))
 
 def toCartesian(L):
     L = L * np.pi / 180
@@ -53,29 +41,46 @@ def toLatLon(R):
     return L
     
 class LocationEncoder(nn.Module):
-    def __init__(self, opt=None):
+    def __init__(self, km=1, opt=None):
         super().__init__()
         self.opt = opt
 
-        self.queue = []
-
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
-        self.LocEnc25k = getLocationEncoder(25)
-        self.LocEnc1k = getLocationEncoder(1)
+        Earth_Diameter = 12742
+        sigma = Earth_Diameter / (3 * km)
+        
+        self.rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+        self.L1 = nn.Linear(512, 1024)
+        self.L2 = nn.Linear(1024, 1024)
+        self.L3 = nn.Linear(1024, 1024)
+        self.L4 = nn.Linear(1024, 1024)
+        self.L5 = nn.Linear(1536, 1024)
+        self.L6 = nn.Linear(1024, 1024)
+        self.L7 = nn.Linear(1024, 1024)
+        self.L8 = nn.Linear(1024, 1024)
+        self.L9 = nn.Linear(1024, 512)
         
     def forward(self, location):
         location = location.float()
-        L2500k = self.LocEnc2500k(location)
-        L750k = self.LocEnc750k(location)
-        L200k = self.LocEnc200k(location)
-        L25k = self.LocEnc25k(location)
-        L1k = self.LocEnc1k(location)
-        
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
-
-        return location_features
+        x_enc = self.rff_encoding(location)
+        x = self.L1(x_enc)
+        x = F.relu(x)
+        x = self.L2(x)
+        x = F.relu(x)
+        x = self.L3(x)
+        x = F.relu(x)
+        x = self.L4(x)
+        x = F.relu(x)
+        x = self.L5(torch.cat([x, x_enc], dim=1))
+        x = F.relu(x)
+        x = self.L6(x)
+        x = F.relu(x)
+        x = self.L7(x)
+        x = F.relu(x)
+        x = self.L8(x)
+        x = F.relu(x)
+        x = self.L9(x)
+        x = F.relu(x)
+        return x
     
 class ImageEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -129,11 +134,11 @@ class GeoCLIP(nn.Module):
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
-        self.image_encoder = ImageEncoder(opt)
-        self.location_encoder = LocationEncoder(opt)
+        self.image_encoder = ImageEncoder(opt=opt)
+        self.location_encoder = LocationEncoder(opt=opt)
         
-        self.momentum_image_encoder = ImageEncoder(opt)
-        self.momentum_location_encoder = LocationEncoder(opt)
+        self.momentum_image_encoder = ImageEncoder(opt=opt)
+        self.momentum_location_encoder = LocationEncoder(opt=opt)
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
