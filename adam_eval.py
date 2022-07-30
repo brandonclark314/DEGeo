@@ -74,6 +74,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
             if j % 10 == 0:
                 print(f'Batch: {i}, Step: {j}')
                 
+            locations_opt.detach_()
             optimizer.zero_grad()
             
             locations_opt = F.normalize(locations_opt, dim=1)
@@ -87,8 +88,6 @@ def adam_eval(val_dataloader, model, epoch, opt):
             loss = -torch.mean(torch.log(torch.diag(probs)))
             loss.backward()
             optimizer.step()
-            
-            locations_opt.detach_()
             
         locations_opt = F.normalize(locations_opt, dim=1)
         
