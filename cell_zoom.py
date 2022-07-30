@@ -94,7 +94,8 @@ def cell_zoom(val_dataloader, model, epoch, opt):
         new_locations_cart = new_locations_cart.to(opt.device)
 
         with torch.no_grad():
-            logits_per_image, logits_per_location, scene_pred = model(imgs, new_locations_cart)
+            logits_per_image, logits_per_location, scene_pred, \
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, new_locations_cart)
         
             for j in range(imgs.shape[0]):
                 select = rearrange(logits_per_image[j,img_to_indices[j][0]:img_to_indices[j][1]], '(bs dim) -> bs dim', bs=1)
