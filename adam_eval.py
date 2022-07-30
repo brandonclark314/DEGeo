@@ -56,10 +56,6 @@ def adam_eval(val_dataloader, model, epoch, opt):
         labels = labels.cpu().numpy()
         imgs = imgs.to(opt.device)
         
-        # Define Optimization Config
-        optimizer = torch.optim.Adam([locations_opt], lr=1e-5)
-        loss = 0
-        
         # First Prediction
         logits_per_image, logits_per_location, scene_pred, \
             img_momentum_matrix, gps_momentum_matrix = model(imgs, locations_opt)
@@ -69,10 +65,14 @@ def adam_eval(val_dataloader, model, epoch, opt):
         locations_opt = locations_opt[outs]
         locations_opt.requires_grad = True
         
+        # Define Optimization Config
+        optimizer = torch.optim.Adam([locations_opt], lr=1e-3)
+        loss = 0
+        
         # Optimize Prediction
         for j in range(opt.eval_steps):
             if j % 10 == 0:
-                print(f'Batch: {i}, Step: {j}, Loss: {loss}')
+                print(f'Batch: {i}, Step: {j}, Loss: {loss}', flush=True)
                 
             locations_opt.detach_().requires_grad_()
             optimizer.zero_grad()
