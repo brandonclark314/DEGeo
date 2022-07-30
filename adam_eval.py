@@ -92,7 +92,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
         
         # Save the predictions and targets
         targets.append(labels)
-        preds.append(locations_opt.detach().cpu().numpy())
+        preds.append(locations_opt.clone().detach().cpu().numpy())
         
 
     preds = np.concatenate(preds, axis=0)
