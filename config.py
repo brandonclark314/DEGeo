@@ -21,7 +21,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (256) x16 (Original Classes)'
+    opt.description = 'GeoCLIP100K Adam (256) x16 (Adam Optim)'
     opt.archname = 'CLIP'
     opt.evaluate = True
     opt.scene = False
