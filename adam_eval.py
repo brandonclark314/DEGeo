@@ -66,7 +66,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
         locations_opt.requires_grad = True
         
         # Define Optimization Config
-        optimizer = torch.optim.Adam([locations_opt], lr=1e-3)
+        optimizer = torch.optim.Adam([locations_opt], lr=1e-5)
         loss = 0
         
         # Optimize Prediction
@@ -87,7 +87,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
             loss.backward()
             optimizer.step()
             
-        locations_opt = F.normalize(locations_opt, dim=1)
+            locations_opt = F.normalize(locations_opt, dim=1)
         
         # Save the predictions and targets
         targets.append(labels)
