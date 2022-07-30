@@ -59,21 +59,21 @@ class LocationEncoder(nn.Module):
 
         self.queue = []
 
-        self.LocEnc10000k = getLocationEncoder(10000)
-        self.LocEnc1000k = getLocationEncoder(1000)
-        self.LocEnc100k = getLocationEncoder(100)
-        self.LocEnc10k = getLocationEncoder(10)
+        self.LocEnc2500k = getLocationEncoder(2500)
+        self.LocEnc750k = getLocationEncoder(750)
+        self.LocEnc200k = getLocationEncoder(200)
+        self.LocEnc25k = getLocationEncoder(25)
         self.LocEnc1k = getLocationEncoder(1)
         
     def forward(self, location):
         location = location.float()
-        L10000k = self.LocEnc10000k(location)
-        L1000k = self.LocEnc1000k(location)
-        L100k = self.LocEnc100k(location)
-        L10k = self.LocEnc10k(location)
+        L2500k = self.LocEnc2500k(location)
+        L750k = self.LocEnc750k(location)
+        L200k = self.LocEnc200k(location)
+        L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        location_features = (L10000k + L1000k + L100k + L10k + L1k) / 5
+        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
 
         return location_features
     
@@ -190,49 +190,53 @@ class GeoCLIP(nn.Module):
         self.loc_queue_ptr[0] = loc_ptr
         
                                              
-    def forward(self, image, location, train=True):
+    def forward(self, image, location, train=False):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
         
-        # Compute Momentum Features
-        with torch.no_grad():
-            if train:
-                self._momentum_update() # update the momentum encoders
-            
-            # Compute Momentum Features
-            momentum_image_features = self.momentum_image_encoder(image)
-            momentum_location_features = self.momentum_location_encoder(location)
-        
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
-        momentum_image_features = F.normalize(momentum_image_features, dim=1)
-        momentum_location_features = F.normalize(momentum_location_features, dim=1)
-        scene_preds = None
         
-        if self.opt.scene:
-            scene_preds = [self.scene_predictor3(image_features),
-                           self.scene_predictor16(image_features),
-                           self.scene_predictor365(image_features)]
-            
-        # Get Positive + Negatives
-        image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
-        location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
-
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
         
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
         
-        # Cosine similarity (Image Features - Momentum Location Feature Queue)
-        logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
+        scene_preds = None
+            
+        if self.opt.scene:
+            scene_preds = [self.scene_predictor3(image_features),
+                           self.scene_predictor16(image_features),
+                           self.scene_predictor365(image_features)]
         
-        # Cosine similarity (Location Features - Momentum Image Feature Queue)
-        logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+        logits_per_image_momentum, logits_per_location_momentum = None
         
         if train:
+            # Compute Momentum Features
+            with torch.no_grad():
+                self._momentum_update() # update the momentum encoders
+            
+                # Compute Momentum Features
+                momentum_image_features = self.momentum_image_encoder(image)
+                momentum_location_features = self.momentum_location_encoder(location)
+            
+            # Normalize Momentum Features
+            momentum_image_features = F.normalize(momentum_image_features, dim=1)
+            momentum_location_features = F.normalize(momentum_location_features, dim=1)
+                
+            # Get Positive + Negatives
+            image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
+            location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
+            
+            # Cosine similarity (Image Features - Momentum Location Feature Queue)
+            logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
+            
+            # Cosine similarity (Location Features - Momentum Image Feature Queue)
+            logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+            
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
