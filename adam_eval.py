@@ -63,8 +63,9 @@ def adam_eval(val_dataloader, model, epoch, opt):
         # First Prediction
         logits_per_image, logits_per_location, scene_pred, \
             img_momentum_matrix, gps_momentum_matrix = model(imgs, locations_opt)
-            
+        probs = logits_per_image.softmax(dim=-1)
         outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
+        
         locations_opt = locations_opt[outs]
         locations_opt.requires_grad = True
         
