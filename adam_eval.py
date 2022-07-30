@@ -72,7 +72,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
         # Optimize Prediction
         for j in range(opt.eval_steps):
             if j % 10 == 0:
-                print(f'Batch: {i}, Step: {j}')
+                print(f'Batch: {i}, Step: {j}, Loss: {loss}')
                 
             locations_opt.detach_().requires_grad_()
             optimizer.zero_grad()
