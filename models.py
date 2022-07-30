@@ -122,7 +122,8 @@ class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
-        self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
+        #self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
+        self.K = 4096
         self.m = 0.999 # MoCo Momentum
         self.T = 0.07 # Softmax temperature
         
