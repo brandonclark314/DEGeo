@@ -26,6 +26,7 @@ def getopt():
     opt.evaluate = True
     opt.scene = False
     opt.hier_eval = False
+    opt.eval_steps = 100
 
     # opt.lr = 3e-5
     opt.lr = 3e-5

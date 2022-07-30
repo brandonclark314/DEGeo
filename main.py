@@ -8,6 +8,7 @@ import torch.nn as nn
 import dataloader
 from train_and_eval import train_images, eval_images
 from cell_zoom import cell_zoom
+from adam_eval import adam_eval
 
 import wandb
 
@@ -61,8 +62,9 @@ if not os.path.exists('./weights/'):
 best_loss = 10000
 for epoch in range(opt.n_epochs):
     if opt.evaluate:
-        eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+        # eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         # cell_zoom(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+        adam_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         break
 
     eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
