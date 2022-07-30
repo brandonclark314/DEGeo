@@ -76,8 +76,6 @@ def adam_eval(val_dataloader, model, epoch, opt):
                 
             locations_opt.detach_().requires_grad_()
             optimizer.zero_grad()
-            
-            locations_opt = F.normalize(locations_opt, dim=1)
 
             # Get predictions (probabilities for each location based on similarity)
             logits_per_image, logits_per_location, scene_pred, \
