@@ -88,6 +88,8 @@ def adam_eval(val_dataloader, model, epoch, opt):
             loss.backward()
             optimizer.step()
             
+            locations_opt.detach_()
+            
         locations_opt = F.normalize(locations_opt, dim=1)
         
         # Save the predictions and targets
