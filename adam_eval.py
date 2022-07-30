@@ -80,7 +80,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
 
             # Get predictions (probabilities for each location based on similarity)
             logits_per_image, logits_per_location, scene_pred, \
-                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations_opt)
                 
             probs = logits_per_image.softmax(dim=-1)
     
