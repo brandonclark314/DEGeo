@@ -57,7 +57,7 @@ def adam_eval(val_dataloader, model, epoch, opt):
         imgs = imgs.to(opt.device)
         
         # Define Optimization Config
-        optimizer = torch.optim.Adam([locations], lr=1e-5)
+        optimizer = torch.optim.Adam([locations_opt], lr=1e-5)
         loss = 0
         
         # First Prediction
