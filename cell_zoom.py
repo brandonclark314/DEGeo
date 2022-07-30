@@ -55,7 +55,8 @@ def cell_zoom(val_dataloader, model, epoch, opt):
         
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
-            logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
+            logits_per_image, logits_per_location, scene_pred, \
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
             probs = logits_per_image.softmax(dim=-1)
         
         
