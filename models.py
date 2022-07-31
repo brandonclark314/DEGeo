@@ -122,8 +122,8 @@ class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
-        #self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
-        self.K = 4096
+        self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
+        # self.K = 4096
         self.m = 0.999 # MoCo Momentum
         self.T = 0.07 # Softmax temperature
         
@@ -228,20 +228,32 @@ class GeoCLIP(nn.Module):
             momentum_image_features = F.normalize(momentum_image_features, dim=1)
             momentum_location_features = F.normalize(momentum_location_features, dim=1)
                 
+            ###### Pure Cross Entropy Loss #########
             # Get Positive + Negatives
-            image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
-            location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
+            # image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
+            # location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
             
-            # Cosine similarity (Image Features - Momentum Location Feature Queue)
-            logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
+            # # Cosine similarity (Image Features - Momentum Location Feature Queue)
+            # logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
             
-            # Cosine similarity (Location Features - Momentum Image Feature Queue)
-            logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+            # # Cosine similarity (Location Features - Momentum Image Feature Queue)
+            # logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+            
+            ###### InfoNCE Loss #########
+            image_embeddings_positive = momentum_image_features
+            image_embeddings_negative = self.img_queue.clone().detach().t()
+            
+            location_embeddings_positive = momentum_location_features
+            location_embeddings_negative = self.loc_queue.clone().detach().t()
+            
+            criterion = InfoNCE(negative_mode='unpaired')
+            img_loss = criterion(image_embeddings_positive, location_embeddings_positive, location_embeddings_negative) 
+            gps_loss = criterion(location_embeddings_positive, image_embeddings_positive, image_embeddings_negative)
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, img_loss, gps_loss
 
 class ViT(nn.Module):
     def __init__(self):
@@ -344,7 +356,7 @@ if __name__ == "__main__":
         location = torch.randn(32, 3)
         print("Image: ", i)
         with torch.no_grad():
-            image_features, location_features, scenes_pred, image_features_momentum, location_features_momentum = model(image, location)
+            image_features, location_features, scenes_pred, img_loss, gps_loss = model(image, location, train=True)
         
     print(image_features.dtype)
     print(location_features.dtype)
@@ -358,7 +370,8 @@ if __name__ == "__main__":
 
     torch.set_printoptions(edgeitems=30)
     
-    loss = criterion(image_features_momentum, targets)
+    print("Image Loss: ", img_loss)
+    print("GPS Loss: ", gps_loss)
 
     # Compute the loss
     # loss = 0
@@ -371,13 +384,13 @@ if __name__ == "__main__":
     # print(gps_loss)
     # print(loss)
 
-    print(loss)
+    # print(loss)
     
-    plt.figure(figsize=(10,10))
-    plt.imshow(image_features_momentum, cmap='viridis', interpolation='none')
-    print(location_features_momentum.shape)
-    plt.colorbar()
-    plt.show()
+    # plt.figure(figsize=(10,10))
+    # plt.imshow(image_features_momentum, cmap='viridis', interpolation='none')
+    # print(location_features_momentum.shape)
+    # plt.colorbar()
+    # plt.show()
     
 
     

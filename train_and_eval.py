@@ -120,7 +120,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred, \
-            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps, train=True)
+            img_loss, gps_loss = model(imgs, gps, train=True)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
@@ -132,8 +132,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':
-            img_loss = img_criterion(img_momentum_matrix, targets).float()
-            gps_loss = img_criterion(gps_momentum_matrix, targets).float()
+            # img_loss = img_criterion(img_momentum_matrix, targets).float()
+            # gps_loss = img_criterion(gps_momentum_matrix, targets).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -258,7 +258,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred,\
-                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
+                img_loss, gps_loss = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
