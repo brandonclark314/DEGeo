@@ -79,6 +79,7 @@ def gaussian_eval(val_dataloader, model, epoch, opt):
         locations_opt = locations_opt[torch.flatten(top_k_i)]
         
         for distance in [100, 50, 25, 10, 5, 1, 0.5, 0.25, 0.1]:
+            print("Locations: ", locations_opt.shape, flush=True)
             locations_opt = zoom_in(locations_opt, n=25, km_std=distance)
             logits_per_image, logits_per_location, scene_pred, \
                 img_momentum_matrix, gps_momentum_matrix = model(imgs, locations_opt)
