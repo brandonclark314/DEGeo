@@ -51,6 +51,11 @@ def toLatLon(R):
     
     L = torch.stack([lat, lon], dim=1)
     return L
+
+def getRandomGPS(n):
+    R = torch.normal(0, 1, size=(n, 3))
+    R = F.normalize(R, dim=1)
+    return R
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -90,33 +95,45 @@ class ImageEncoder(nn.Module):
         image_features = self.mlp(image_features)
         return image_features
     
-class GPSGaussianDecoder(nn.Module):
-    def __init__(self, opt=None):
-        super().__init__()
-        self.opt = opt
-        self.gps_decoder = nn.Sequential(nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512))
-        
-        self.gps_decoder_mean = nn.Sequential(nn.Linear(256, 3))
-        self.gps_decoder_sigma = nn.Sequential(nn.Linear(256, 1))
-        
-    def forward(self, gps_features):
-        gps_features = self.gps_decoder(gps_features)
-        gps_mean = self.gps_decoder_mean(gps_features)
-        gps_sigma = self.gps_decoder_sigma(gps_features)
-        
-        # Normalize Mean
-        gps_mean = F.normalize(gps_mean, dim=1)
-        
-        # Make Sigma Positive
-        gps_sigma = torch.exp(gps_sigma)
-        
-        return gps_mean, gps_sigma
+# ================ Variational Autoencoder =============== #
+
+class Encoder(torch.nn.Module):
+    def __init__(self, D_in=512, latent_size=128):
+        super(Encoder, self).__init__()
+        self.linear1 = torch.nn.Linear(D_in, 512)
+        self.linear2 = torch.nn.Linear(512, 256)
+        self.enc_mu = torch.nn.Linear(256, latent_size)
+        self.enc_log_sigma = torch.nn.Linear(256, latent_size)
+
+    def forward(self, x):
+        x = F.relu(self.linear1(x))
+        x = F.relu(self.linear2(x))
+        mu = self.enc_mu(x)
+        log_sigma = self.enc_log_sigma(x)
+        sigma = torch.exp(log_sigma)
+        return torch.distributions.Normal(loc=mu, scale=sigma)
+
+class Decoder(torch.nn.Module):
+    def __init__(self, D_in=128, D_out=512):
+        super(Decoder, self).__init__()
+        self.linear1 = torch.nn.Linear(D_in, 256)
+        self.linear2 = torch.nn.Linear(256, D_out)
+
+    def forward(self, x):
+        x = F.relu(self.linear1(x))
+        mu = torch.tanh(self.linear2(x))
+        return torch.distributions.Normal(mu, torch.ones_like(mu))
+
+class VAE(torch.nn.Module):
+    def __init__(self, encoder, decoder):
+        super(VAE, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, state):
+        q_z = self.encoder(state)
+        z = q_z.rsample()
+        return self.decoder(z), q_z
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -135,6 +152,8 @@ class GeoCLIP(nn.Module):
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
+        
+        self.VAE = VAE(Encoder(512, 128), Decoder(128, 512))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -239,8 +258,26 @@ class GeoCLIP(nn.Module):
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
+        
+        # Variational AutoEncoder Predictions
+        vae_preds = self.VAE(location_features.detach())
+        
+        # Predict Regularization Terms
+        for param in self.VAE.parameters():
+            param.requires_grad = False
+        
+        randomGPSfeatures = self.location_encoder(getRandomGPS(128))
+        vae_reg_preds = self.VAE(randomGPSfeatures)
+        
+        for param in self.VAE.parameters():
+            param.requires_grad = True
+            
+        VAEData = dict(location_features=location_features,
+                         randomGPSfeatures = randomGPSfeatures,
+                         vae_preds=vae_preds,
+                         vae_reg_preds=vae_reg_preds,)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum, VAEData
 
 class ViT(nn.Module):
     def __init__(self):

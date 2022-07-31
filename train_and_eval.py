@@ -96,7 +96,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred, \
-            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps, train=True)
+            img_momentum_matrix, gps_momentum_matrix, VAEData = model(imgs, gps, train=True)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
@@ -110,13 +110,23 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
+            
+            # VAE Loss
+            vae_criterion = nn.MSELoss()
+            # VAEData = dict(location_features=location_features,
+            #              randomGPSfeatures = randomGPSfeatures,
+            #              vae_preds=vae_preds,
+            #              vae_reg_preds=vae_reg_preds,)
+            vae_loss = vae_criterion(VAEData['vae_preds'], VAEData['location_features'])
+            vae_reg_loss = vae_criterion(VAEData['vae_reg_preds'], VAEData['randomGPSfeatures'])
+            vae_total_loss = (vae_loss + vae_reg_loss) / 2
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = (img_loss + gps_loss) / 2 + vae_total_loss
                 
         if opt.traintype == 'Classification':
             
@@ -149,6 +159,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
+                wandb.log({"VAE Loss": vae_loss.item()})
+                wandb.log({"VAE Reg. Loss": vae_reg_loss.item()})
                 # wandb.log({"GPS Gaussian Loss": gps_gaussian_loss.item()})
                 # wandb.log({"GPS Pred. Arc": km.item()})
             if opt.traintype == 'Classification':
@@ -234,7 +246,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred,\
-                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
+                img_momentum_matrix, gps_momentum_matrix, VAEData = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
