@@ -285,8 +285,8 @@ class GeoCLIP(nn.Module):
         vae_reg_ll = px_reg.log_prob(randomGPSfeatures).sum(-1).mean()
         vae_reg_kl = torch.distributions.kl_divergence(qz_reg, torch.distributions.Normal(0, 1.)).sum(-1).mean()
         
-        vae_loss = torch.log(- (vae_ll - vae_kl))
-        var_reg_loss = torch.log(- (vae_reg_ll - vae_reg_kl))
+        vae_loss = - (vae_ll - vae_kl) / 512
+        var_reg_loss = - (vae_reg_ll - vae_reg_kl) / 512
             
         VAEData = {'vae_loss': vae_loss, 'vae_reg_loss': var_reg_loss}
 
