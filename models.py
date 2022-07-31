@@ -101,13 +101,15 @@ class Encoder(torch.nn.Module):
     def __init__(self, D_in=512, latent_size=128):
         super(Encoder, self).__init__()
         self.linear1 = torch.nn.Linear(D_in, 512)
-        self.linear2 = torch.nn.Linear(512, 256)
-        self.enc_mu = torch.nn.Linear(256, latent_size)
-        self.enc_log_sigma = torch.nn.Linear(256, latent_size)
+        self.linear2 = torch.nn.Linear(512, 512)
+        self.linear3 = torch.nn.Linear(512, 512)
+        self.enc_mu = torch.nn.Linear(512, latent_size)
+        self.enc_log_sigma = torch.nn.Linear(512, latent_size)
 
     def forward(self, x):
         x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
         mu = self.enc_mu(x)
         log_sigma = self.enc_log_sigma(x)
         sigma = torch.exp(log_sigma)
@@ -116,12 +118,18 @@ class Encoder(torch.nn.Module):
 class Decoder(torch.nn.Module):
     def __init__(self, D_in=128, D_out=512):
         super(Decoder, self).__init__()
-        self.linear1 = torch.nn.Linear(D_in, 256)
-        self.linear2 = torch.nn.Linear(256, D_out)
+        self.linear1 = torch.nn.Linear(D_in, 512)
+        self.linear2 = torch.nn.Linear(512, 512)
+        self.linear3 = torch.nn.Linear(512, 512)
+        self.linear4 = torch.nn.Linear(512, D_out)
 
     def forward(self, x):
         x = F.relu(self.linear1(x))
-        mu = torch.tanh(self.linear2(x))
+        x = F.relu(self.linear2(x))
+        x = F.relu(self.linear3(x))
+        x = F.relu(self.linear4(x))
+        
+        mu = torch.tanh(self.linear4(x))
         return torch.distributions.Normal(mu, torch.ones_like(mu))
 
 class VAE(torch.nn.Module):
@@ -277,8 +285,8 @@ class GeoCLIP(nn.Module):
         vae_reg_ll = px_reg.log_prob(randomGPSfeatures).sum(-1).mean()
         vae_reg_kl = torch.distributions.kl_divergence(qz_reg, torch.distributions.Normal(0, 1.)).sum(-1).mean()
         
-        vae_loss = - (vae_ll - vae_kl)
-        var_reg_loss = - (vae_reg_ll - vae_reg_kl)
+        vae_loss = torch.log(- (vae_ll - vae_kl))
+        var_reg_loss = torch.log(- (vae_reg_ll - vae_reg_kl))
             
         VAEData = {'vae_loss': vae_loss, 'vae_reg_loss': var_reg_loss}
 
