@@ -266,7 +266,7 @@ class GeoCLIP(nn.Module):
         for param in self.VAE.parameters():
             param.requires_grad = False
         
-        randomGPSfeatures = self.location_encoder(getRandomGPS(128))
+        randomGPSfeatures = self.location_encoder(getRandomGPS(128).to(self.opt.device))
         vae_reg_preds = self.VAE(randomGPSfeatures)
         
         for param in self.VAE.parameters():
