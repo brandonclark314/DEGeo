@@ -133,7 +133,7 @@ class VAE(torch.nn.Module):
     def forward(self, state):
         q_z = self.encoder(state)
         z = q_z.rsample()
-        return self.decoder(z), q_z
+        return self.decoder(z)
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -266,8 +266,8 @@ class GeoCLIP(nn.Module):
         for param in self.VAE.parameters():
             param.requires_grad = False
         
-        randomGPSfeatures = self.location_encoder(getRandomGPS(128).to(self.opt.device))[0]
-        vae_reg_preds = self.VAE(randomGPSfeatures)[0]
+        randomGPSfeatures = self.location_encoder(getRandomGPS(128).to(self.opt.device))
+        vae_reg_preds = self.VAE(randomGPSfeatures)
         
         for param in self.VAE.parameters():
             param.requires_grad = True
