@@ -213,8 +213,8 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
         
-        logits_per_image_momentum = logits_per_location_momentum = None
-        
+        #logits_per_image_momentum = logits_per_location_momentum = None
+        img_loss, gps_loss = None
         if train:
             # Compute Momentum Features
             with torch.no_grad():
