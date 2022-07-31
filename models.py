@@ -213,8 +213,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
         
-        #logits_per_image_momentum = logits_per_location_momentum = None
-        momentum_embeddings= None
+        logits_per_image_momentum = logits_per_location_momentum = None
         if train:
             # Compute Momentum Features
             with torch.no_grad():
@@ -228,33 +227,20 @@ class GeoCLIP(nn.Module):
             momentum_image_features = F.normalize(momentum_image_features, dim=1)
             momentum_location_features = F.normalize(momentum_location_features, dim=1)
                 
-            ###### Pure Cross Entropy Loss #########
             # Get Positive + Negatives
-            # image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
-            # location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
+            image_embeddings = torch.cat([momentum_image_features.t(), self.img_queue.clone().detach()], dim=1)
+            location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
             
-            # # Cosine similarity (Image Features - Momentum Location Feature Queue)
-            # logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
+            # Cosine similarity (Image Features - Momentum Location Feature Queue)
+            logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
             
-            # # Cosine similarity (Location Features - Momentum Image Feature Queue)
-            # logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
-            
-            ###### InfoNCE Loss #########
-            image_embeddings_positive = momentum_image_features
-            image_embeddings_negative = self.img_queue.clone().detach().t()
-            
-            location_embeddings_positive = momentum_location_features
-            location_embeddings_negative = self.loc_queue.clone().detach().t()
-            
-            momentum_embeddings = dict(image_embeddings_positive=image_embeddings_positive,
-                                        image_embeddings_negative=image_embeddings_negative,
-                                        location_embeddings_positive=location_embeddings_positive,
-                                        location_embeddings_negative=location_embeddings_negative)
+            # Cosine similarity (Location Features - Momentum Image Feature Queue)
+            logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, momentum_embeddings
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):
