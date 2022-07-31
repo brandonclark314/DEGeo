@@ -112,13 +112,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
             
             # VAE Loss
-            vae_criterion = nn.MSELoss()
-            # VAEData = dict(location_features=location_features,
-            #              randomGPSfeatures = randomGPSfeatures,
-            #              vae_preds=vae_preds,
-            #              vae_reg_preds=vae_reg_preds,)
-            vae_loss = vae_criterion(VAEData['vae_preds'], VAEData['location_features'])
-            vae_reg_loss = vae_criterion(VAEData['vae_reg_preds'], VAEData['randomGPSfeatures'])
+            vae_loss = VAEData['vae_loss']
+            vae_reg_loss = VAEData['vae_reg_loss']
             vae_total_loss = (vae_loss + vae_reg_loss) / 2
         
             if opt.scene:

@@ -133,7 +133,7 @@ class VAE(torch.nn.Module):
     def forward(self, state):
         q_z = self.encoder(state)
         z = q_z.rsample()
-        return self.decoder(z)
+        return self.decoder(z), q_z
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -260,22 +260,27 @@ class GeoCLIP(nn.Module):
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
         
         # Variational AutoEncoder Predictions
-        vae_preds = self.VAE(location_features.detach())
+        px, qz = self.VAE(location_features.detach())
         
         # Predict Regularization Terms
         for param in self.VAE.parameters():
             param.requires_grad = False
         
         randomGPSfeatures = self.location_encoder(getRandomGPS(128).to(self.opt.device))
-        vae_reg_preds = self.VAE(randomGPSfeatures)
+        px_reg, qz_reg = self.VAE(randomGPSfeatures)
         
         for param in self.VAE.parameters():
             param.requires_grad = True
             
-        VAEData = dict(location_features=location_features.detach(),
-                         randomGPSfeatures = randomGPSfeatures,
-                         vae_preds=vae_preds,
-                         vae_reg_preds=vae_reg_preds,)
+        vae_ll = px.log_prob(location_features.detach()).sum(-1).mean()
+        vae_kl = torch.distributions.kl_divergence(qz, torch.distributions.Normal(0, 1.)).sum(-1).mean()
+        vae_reg_ll = px_reg.log_prob(randomGPSfeatures).sum(-1).mean()
+        vae_reg_kl = torch.distributions.kl_divergence(qz_reg, torch.distributions.Normal(0, 1.)).sum(-1).mean()
+        
+        vae_loss = - (vae_ll - vae_kl)
+        var_reg_loss = - (vae_reg_ll - vae_reg_kl)
+            
+        VAEData = {'vae_loss': vae_loss, 'var_reg_loss': var_reg_loss}
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum, VAEData
 
