@@ -280,7 +280,7 @@ class GeoCLIP(nn.Module):
         vae_loss = - (vae_ll - vae_kl)
         var_reg_loss = - (vae_reg_ll - vae_reg_kl)
             
-        VAEData = {'vae_loss': vae_loss, 'var_reg_loss': var_reg_loss}
+        VAEData = {'vae_loss': vae_loss, 'vae_reg_loss': var_reg_loss}
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum, VAEData
 
