@@ -53,9 +53,9 @@ def toLatLon(R):
     return L
 
 def getRandomGPS(n):
-    R = torch.normal(0, 1, size=(n, 3))
-    R = F.normalize(R, dim=1)
-    return R
+    coords = 2 * torch.rand(n, 3) - 1
+    coords = coords / coords.norm(dim=1, keepdim=True)
+    return coords
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
