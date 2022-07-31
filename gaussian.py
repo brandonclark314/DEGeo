@@ -39,6 +39,7 @@ def zoom_in(locations, n, km_std):
     std = km_std / Earth_Diameter
     
     for i in range(n):
+        print("Zoom in", i, flush=True)
         new_locations = torch.normal(locations, std=std)
         locations = torch.cat((locations, new_locations), dim=0)
         
