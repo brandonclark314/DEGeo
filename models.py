@@ -214,7 +214,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor365(image_features)]
         
         #logits_per_image_momentum = logits_per_location_momentum = None
-        img_loss = gps_loss = None
+        momentum_embeddings= None
         if train:
             # Compute Momentum Features
             with torch.no_grad():
@@ -246,14 +246,15 @@ class GeoCLIP(nn.Module):
             location_embeddings_positive = momentum_location_features
             location_embeddings_negative = self.loc_queue.clone().detach().t()
             
-            criterion = InfoNCE(negative_mode='unpaired')
-            img_loss = criterion(image_embeddings_positive, location_embeddings_positive, location_embeddings_negative) 
-            gps_loss = criterion(location_embeddings_positive, image_embeddings_positive, image_embeddings_negative)
+            momentum_embeddings = dict(image_embeddings_positive=image_embeddings_positive,
+                                        image_embeddings_negative=image_embeddings_negative,
+                                        location_embeddings_positive=location_embeddings_positive,
+                                        location_embeddings_negative=location_embeddings_negative)
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
 
-        return logits_per_image, logits_per_location, scene_preds, img_loss, gps_loss
+        return logits_per_image, logits_per_location, scene_preds, momentum_embeddings
 
 class ViT(nn.Module):
     def __init__(self):

@@ -51,30 +51,6 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
-def getRandomCoordinates(num_coords):
-    coords = 2 * torch.rand(num_coords, 3) - 1
-    coords = coords / coords.norm(dim=1, keepdim=True)
-    return coords
-
-def getLikelihood(x, mu, sigma):
-    """Return likelihood of 3D X given mu and sigma"""
-    return 
-
-# def getGPSGaussianLoss(gps_obs, gps_mean_pred, gps_sigma_pred):
-#     gps_obs = gps_obs.float()
-#     gps_mean_pred = gps_mean_pred.float()
-#     gps_sigma_pred = gps_sigma_pred.float()
-    
-#     gps_diff = -torch.log(nn.CosineSimilarity()(gps_obs, gps_mean_pred))
-    
-#     likelihood = 1 / (sigma * (2 * np.pi) ** 0.5) * torch.exp(-0.5 * ((x - mu) / sigma) ** 2)
-    
-#     km = torch.mean(torch.acos(nn.CosineSimilarity()(gps_obs, gps_mean_pred)) * earth_radius)
-    
-#     gps_gaussian_loss = -torch.mean(torch.log(getLikelihood(gps_obs, gps_mean_pred, gps_sigma_pred))).float()
-
-#     return gps_gaussian_loss, km
-
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -120,7 +96,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred, \
-            img_loss, gps_loss = model(imgs, gps, train=True)
+            momentum_embeddings  = model(imgs, gps, train=True)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
@@ -132,6 +108,16 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':
+            
+            img_embeddings_positive = momentum_embeddings["image_embeddings_positive"]
+            img_embeddings_negative = momentum_embeddings["image_embeddings_negative"]
+            gps_embeddings_positive = momentum_embeddings["location_embeddings_positive"]
+            gps_embeddings_negative = momentum_embeddings["location_embeddings_negative"]
+            
+            criterion = InfoNCE(negative_mode='unpaired')
+            img_loss = criterion(img_embeddings_positive, gps_embeddings_positive, gps_embeddings_negative) 
+            gps_loss = criterion(gps_embeddings_positive, img_embeddings_positive, img_embeddings_negative)
+            
             # img_loss = img_criterion(img_momentum_matrix, targets).float()
             # gps_loss = img_criterion(gps_momentum_matrix, targets).float()
         
@@ -258,7 +244,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred,\
-                img_loss, gps_loss = model(imgs, locations)
+                momentum_embeddings = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
