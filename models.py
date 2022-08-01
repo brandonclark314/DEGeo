@@ -74,6 +74,8 @@ class LocationEncoder(nn.Module):
         L1k = self.LocEnc1k(location)
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        
+        # TODO: Normalize Features
 
         return location_features
     
@@ -107,6 +109,8 @@ class GeoCLIP(nn.Module):
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
+        
+        self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -186,6 +190,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor365(image_features)]
         
         logits_per_image_momentum = logits_per_location_momentum = None
+
         if train:
             # Compute Momentum Features
             with torch.no_grad():
@@ -211,8 +216,17 @@ class GeoCLIP(nn.Module):
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
+            
+            # GPS Regularization Predictions
+            gps_reg_preds = self.gps_mlp(F.normalize(image_features + location_features, dim=1))
+        else:
+            # GPS Regularization Predictions
+            gps_reg_preds = self.gps_mlp(image_features)
+            
+        # Normalize GPS 
+        gps_reg_preds = F.normalize(gps_reg_preds, dim=1)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum, gps_reg_preds
 
 class ViT(nn.Module):
     def __init__(self):
