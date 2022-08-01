@@ -62,6 +62,8 @@ def loc_enc_eval(val_dataloader, model, epoch, opt):
         # Compute Features
         image_features = model.image_encoder(imgs)
         
+        locations = locations.float()
+        
         # Location Features: 1km, 25km, 200km, 750km, 2500km
         location_features_1km = model.location_encoder.LocEnc1k(locations)
         location_features_25km = model.location_encoder.LocEnc25k(locations)
