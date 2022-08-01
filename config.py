@@ -24,7 +24,7 @@ def getopt():
 
     opt.description = 'GeoCLIP100K Adam (256) x16 New12k'
     opt.archname = 'CLIP'
-    opt.evaluate = False
+    opt.evaluate = True
     opt.scene = False
     opt.hier_eval = False
 
