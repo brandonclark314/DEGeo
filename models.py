@@ -26,7 +26,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 512))
+                         nn.Linear(1024, 1024))
 
 def toCartesian(L):
     L = L * np.pi / 180
@@ -64,6 +64,7 @@ class LocationEncoder(nn.Module):
         self.LocEnc200k = getLocationEncoder(200)
         self.LocEnc25k = getLocationEncoder(25)
         self.LocEnc1k = getLocationEncoder(1)
+        self.mlp = nn.Sequential(nn.Linear(1024, 512))
         
     def forward(self, location):
         location = location.float()
