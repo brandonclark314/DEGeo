@@ -75,6 +75,8 @@ class LocationEncoder(nn.Module):
         L1k = self.LocEnc1k(location)
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        
+        location_features = self.mlp(location_features)
 
         return location_features
     
