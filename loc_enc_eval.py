@@ -108,11 +108,11 @@ def loc_enc_eval(val_dataloader, model, epoch, opt):
         gps_2500km = locations[outs_2500km]
         
         # Save the predictions and targets
-        targets_1km.append(outs_1km)
-        targets_25km.append(outs_25km)
-        targets_200km.append(outs_200km)
-        targets_750km.append(outs_750km)
-        targets_2500km.append(outs_2500km)
+        targets_1km.append(labels)
+        targets_25km.append(labels)
+        targets_200km.append(labels)
+        targets_750km.append(labels)
+        targets_2500km.append(labels)
         
         preds_1km.append(gps_1km.detach().cpu().numpy())
         preds_25km.append(gps_25km.detach().cpu().numpy())
