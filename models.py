@@ -218,7 +218,8 @@ class GeoCLIP(nn.Module):
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
             
             # GPS Regularization Predictions
-            gps_reg_preds = self.gps_mlp(F.normalize(image_features + location_features, dim=1))
+            # gps_reg_preds = self.gps_mlp(F.normalize(image_features + location_features, dim=1))
+            gps_reg_preds = self.gps_mlp(image_features)
         else:
             # GPS Regularization Predictions
             gps_reg_preds = self.gps_mlp(image_features)
