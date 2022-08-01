@@ -67,15 +67,13 @@ class LocationEncoder(nn.Module):
         
     def forward(self, location):
         location = location.float()
-        L2500k = self.LocEnc2500k(location)
-        L750k = self.LocEnc750k(location)
-        L200k = self.LocEnc200k(location)
-        L25k = self.LocEnc25k(location)
-        L1k = self.LocEnc1k(location)
+        L2500k = F.normalize(self.LocEnc2500k(location))
+        L750k = F.normalize(self.LocEnc750k(location))
+        L200k = F.normalize(self.LocEnc200k(location))
+        L25k = F.normalize(self.LocEnc25k(location))
+        L1k = F.normalize(self.LocEnc1k(location))
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
-        
-        # TODO: Normalize Features
 
         return location_features
     
