@@ -26,7 +26,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 768))
+                         nn.Linear(1024, 512))
 
 def toCartesian(L):
     L = L * np.pi / 180
@@ -64,7 +64,6 @@ class LocationEncoder(nn.Module):
         self.LocEnc200k = getLocationEncoder(200)
         self.LocEnc25k = getLocationEncoder(25)
         self.LocEnc1k = getLocationEncoder(1)
-        self.mlp = nn.Sequential(nn.Linear(1024, 512))
         
     def forward(self, location):
         location = location.float()
@@ -75,8 +74,6 @@ class LocationEncoder(nn.Module):
         L1k = self.LocEnc1k(location)
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
-        
-        # location_features = self.mlp(location_features)
 
         return location_features
     
@@ -92,41 +89,13 @@ class ImageEncoder(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
-    
-class GPSGaussianDecoder(nn.Module):
-    def __init__(self, opt=None):
-        super().__init__()
-        self.opt = opt
-        self.gps_decoder = nn.Sequential(nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512),
-                                          nn.ReLU(),
-                                          nn.Linear(512, 512))
-        
-        self.gps_decoder_mean = nn.Sequential(nn.Linear(256, 3))
-        self.gps_decoder_sigma = nn.Sequential(nn.Linear(256, 1))
-        
-    def forward(self, gps_features):
-        gps_features = self.gps_decoder(gps_features)
-        gps_mean = self.gps_decoder_mean(gps_features)
-        gps_sigma = self.gps_decoder_sigma(gps_features)
-        
-        # Normalize Mean
-        gps_mean = F.normalize(gps_mean, dim=1)
-        
-        # Make Sigma Positive
-        gps_sigma = torch.exp(gps_sigma)
-        
-        return gps_mean, gps_sigma
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 768):
         super().__init__()
         self.opt = opt
-        self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
-        # self.K = 4096
+        # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
+        self.K = 4096
         self.m = 0.999 # MoCo Momentum
         self.T = 0.07 # Softmax temperature
         
