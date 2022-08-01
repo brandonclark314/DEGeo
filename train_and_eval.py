@@ -175,8 +175,8 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     if trainset == 'train':
         # coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_4249548.csv")
         # medium_gps = pd.read_csv(opt.resources + "cells_50_2000_images_4249548.csv")
-        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-        fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
 
@@ -212,8 +212,8 @@ def eval_images(val_dataloader, model, epoch, opt):
      # Save all the classes (possible locations to predict)
      
     if opt.partition == 'fine':
-        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-        fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
