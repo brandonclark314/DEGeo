@@ -26,7 +26,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 1024))
+                         nn.Linear(1024, 768))
 
 def toCartesian(L):
     L = L * np.pi / 180
@@ -76,7 +76,7 @@ class LocationEncoder(nn.Module):
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
         
-        location_features = self.mlp(location_features)
+        # location_features = self.mlp(location_features)
 
         return location_features
     
@@ -85,7 +85,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 768))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
