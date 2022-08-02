@@ -23,6 +23,7 @@ def distance(pt1, pt2):
     return torch.norm(pt1 - pt2)
 
 def filterLand(points):
+    print("Filtering land", flush=True)
     points_lat_lon = toLatLon(points)
     lat = points_lat_lon[:, 0]
     lon = points_lat_lon[:, 1]
@@ -83,7 +84,7 @@ def fibonacci_eval(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
     
     # Save all the classes (possible locations to predict)
-    locations = fibonacci_sphere(samples=100000, dists=None, opt=opt)
+    locations = fibonacci_sphere(samples=1000, dists=None, opt=opt)
     locations = torch.tensor(locations)
     locations = locations.to(opt.device)
     locations = filterLand(locations)
