@@ -33,6 +33,10 @@ def filterLand(points):
     isLand = globe.is_land(lat, lon)
     
     points = points[isLand]
+    
+    print("Original Points:", points_lat_lon.shape[0], flush=True)
+    print("Filtered Points:", points.shape[0], flush=True)
+    return points
 
 def fibonacci_sphere(samples=1000, preds=None, dists=None, opt=None):
     if dists:
