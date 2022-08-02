@@ -11,6 +11,7 @@ from coordinates import toCartesian, toLatLon
 import wandb
 import dataloader
 import pickle
+from global_land_mask import globe
 
 def to_lat_lon(point=None):
     lat = np.arcsin(point[2])*180/np.pi
@@ -20,6 +21,18 @@ def to_lat_lon(point=None):
 def distance(pt1, pt2):
     """Given Torch Tensors pt1 and pt2, return the R2 distance between them."""
     return torch.norm(pt1 - pt2)
+
+def filterLand(points):
+    points_lat_lon = toLatLon(points)
+    lat = points_lat_lon[:, 0]
+    lon = points_lat_lon[:, 1]
+    
+    lat = lat.cpu().numpy()
+    lon = lon.cpu().numpy()
+    
+    isLand = globe.is_land(lat, lon)
+    
+    points = points[isLand]
 
 def fibonacci_sphere(samples=1000, preds=None, dists=None, opt=None):
     if dists:
@@ -66,9 +79,10 @@ def fibonacci_eval(val_dataloader, model, epoch, opt):
     bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
     
     # Save all the classes (possible locations to predict)
-    locations = fibonacci_sphere(samples=10000, dists=None, opt=opt)
+    locations = fibonacci_sphere(samples=100000, dists=None, opt=opt)
     locations = torch.tensor(locations)
     locations = locations.to(opt.device)
+    locations = filterLand(locations)
 
     preds = []
     targets = []
