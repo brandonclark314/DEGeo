@@ -14,6 +14,7 @@ from torch.autograd import Variable
 import torchvision.models as models
 from config import getopt
 from infonce import InfoNCE
+from coordinates import toCartesian, toLatLon
 
 def getLocationEncoder(km):
     Earth_Diameter = 12742
@@ -27,30 +28,6 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
-
-def toCartesian(L):
-    L = L * np.pi / 180
-
-    x = torch.cos(L[:, 0]) * torch.cos(L[:, 1])
-    y = torch.cos(L[:, 0]) * torch.sin(L[:, 1])
-    z = torch.sin(L[:, 0])
-    
-    R = torch.stack([x, y, z], dim=1)
-    return R
-
-def toLatLon(R):
-    x = R[:, 0]
-    y = R[:, 1]
-    z = R[:, 2]
-    
-    lat = torch.arctan2(z, torch.sqrt(x**2 + y**2))
-    lon = torch.arctan2(y, x)
-    
-    lat = lat * 180 / np.pi
-    lon = lon * 180 / np.pi
-    
-    L = torch.stack([lat, lon], dim=1)
-    return L
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -67,14 +44,14 @@ class LocationEncoder(nn.Module):
         
     def forward(self, location):
         location = location.float()
-        L2500k = F.normalize(self.LocEnc2500k(location))
-        L750k = F.normalize(self.LocEnc750k(location))
-        L200k = F.normalize(self.LocEnc200k(location))
-        L25k = F.normalize(self.LocEnc25k(location))
-        L1k = F.normalize(self.LocEnc1k(location))
+        L2500k = self.LocEnc2500k(location)
+        L750k = self.LocEnc750k(location)
+        L200k = self.LocEnc200k(location)
+        L25k = self.LocEnc25k(location)
+        L1k = self.LocEnc1k(location)
         
         location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
-
+        
         return location_features
     
 class ImageEncoder(nn.Module):
@@ -108,7 +85,7 @@ class GeoCLIP(nn.Module):
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
         
-        self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
+        # self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -217,15 +194,16 @@ class GeoCLIP(nn.Module):
             
             # GPS Regularization Predictions
             # gps_reg_preds = self.gps_mlp(F.normalize(image_features + location_features, dim=1))
-            gps_reg_preds = self.gps_mlp(image_features)
+            # gps_reg_preds = self.gps_mlp(image_features)
         else:
+            pass
             # GPS Regularization Predictions
-            gps_reg_preds = self.gps_mlp(image_features)
+            # gps_reg_preds = self.gps_mlp(image_features)
             
         # Normalize GPS 
-        gps_reg_preds = F.normalize(gps_reg_preds, dim=1)
+        # gps_reg_preds = F.normalize(gps_reg_preds, dim=1)
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum, gps_reg_preds
+        return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
 class ViT(nn.Module):
     def __init__(self):
