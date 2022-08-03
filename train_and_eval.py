@@ -101,7 +101,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred, \
-            img_momentum_matrix, gps_momentum_matrix, gps_reg_preds = model(imgs, gps, train=True)
+            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps, train=True)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
@@ -115,14 +115,13 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_momentum_matrix, targets).float()
             gps_loss = img_criterion(gps_momentum_matrix, targets).float()
-            gps_reg_loss = GPS_Loss(gps, gps_reg_preds)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_reg_loss) / 3
+                loss = (img_loss + gps_loss) / 2
                 
         if opt.traintype == 'Classification':
             
@@ -155,14 +154,13 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if False and val_dataloader != None and i % (val_cycle * 100) == 0:
+        if True and val_dataloader != None and i % val_cycle == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -175,8 +173,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     if trainset == 'train':
         # coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_4249548.csv")
         # medium_gps = pd.read_csv(opt.resources + "cells_50_2000_images_4249548.csv")
-        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
 
@@ -212,8 +209,7 @@ def eval_images(val_dataloader, model, epoch, opt):
      # Save all the classes (possible locations to predict)
      
     if opt.partition == 'fine':
-        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
-        # fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
@@ -221,7 +217,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     elif opt.partition == '26K':
         locations = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=True)
     elif opt.partition == 'Mix':
-        fine_gps = pd.read_csv(opt.resources + "cells_50_1000_images_4249548.csv")
+        fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations = [toCartesian(x[0], x[1]) for x in locations]
         locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
@@ -242,7 +238,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         with torch.no_grad():
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred,\
-                img_momentum_matrix, gps_momentum_matrix, gps_reg_preds = model(imgs, locations)
+                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
