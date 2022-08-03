@@ -51,11 +51,6 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
-def GPS_Loss(gps_targets, gps_preds, tau=16):
-    cos_sim = nn.CosineSimilarity()(gps_targets, gps_preds)
-    loss = - tau * torch.mean(torch.log((cos_sim + 1) / 2))
-    return loss
-
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -100,9 +95,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, \
-            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps, train=True)
-
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
         if opt.traintype == 'Classification':
@@ -113,8 +106,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':     
-            img_loss = img_criterion(img_momentum_matrix, targets).float()
-            gps_loss = img_criterion(gps_momentum_matrix, targets).float()
+            img_loss = img_criterion(img_matrix, targets).float()
+            gps_loss = img_criterion(gps_matrix, targets).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -160,7 +153,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if True and val_dataloader != None and i % val_cycle == 0:
+        if True and val_dataloader != None and i % (val_cycle * 5) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -237,8 +230,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred,\
-                img_momentum_matrix, gps_momentum_matrix = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
