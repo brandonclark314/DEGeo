@@ -19,15 +19,15 @@ from coordinates import toCartesian, toLatLon
 def getLocationEncoder(km):
     Earth_Diameter = 12742
     sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=64)
+    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
-                         nn.Linear(128, 512),
+                         nn.Linear(512, 2048),
                          nn.ReLU(),
-                         nn.Linear(512, 512),
+                         nn.Linear(2048, 2048),
                          nn.ReLU(),
-                         nn.Linear(512, 512),
+                         nn.Linear(2048, 2048),
                          nn.ReLU(),
-                         nn.Linear(512, 512))
+                         nn.Linear(2048, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -35,26 +35,22 @@ class LocationEncoder(nn.Module):
         self.opt = opt
 
         self.queue = []
-        
+
+        self.LocEnc2500k = getLocationEncoder(2500)
+        self.LocEnc750k = getLocationEncoder(750)
+        self.LocEnc200k = getLocationEncoder(200)
+        self.LocEnc25k = getLocationEncoder(25)
         self.LocEnc1k = getLocationEncoder(1)
-        self.LocEnc4k = getLocationEncoder(4)
-        self.LocEnc16k = getLocationEncoder(16)
-        self.LocEnc64k = getLocationEncoder(64)
-        self.LocEnc256k = getLocationEncoder(256)
-        self.LocEnc1024k = getLocationEncoder(1024)
-        self.LocEnc4096k = getLocationEncoder(4096)
         
     def forward(self, location):
         location = location.float()
+        L2500k = self.LocEnc2500k(location)
+        L750k = self.LocEnc750k(location)
+        L200k = self.LocEnc200k(location)
+        L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
-        L4k = self.LocEnc4k(location)
-        L16k = self.LocEnc16k(location)
-        L64k = self.LocEnc64k(location)
-        L256k = self.LocEnc256k(location)
-        L1024k = self.LocEnc1024k(location)
-        L4096k = self.LocEnc4096k(location)
         
-        location_features = L1k + L4k + L16k + L64k + L256k + L1024k + L4096k
+        location_features = L2500k + L750k + L200k + L25k + L1k
         
         return location_features
     
