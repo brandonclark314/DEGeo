@@ -1,5 +1,6 @@
 from importlib.metadata import requires
 import sched
+from typing_extensions import Self
 
 from transformers import ViTModel
 from transformers import ResNetForImageClassification as ResNet
@@ -29,30 +30,82 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 512))
     
+class LocationEncoderBase(nn.Module):
+    def __init__(self, km=2500, opt=None):
+        super().__init__()
+        self.opt = opt
+        Earth_Diameter = 12742
+        
+        self.sigma = Earth_Diameter / (3 * km)
+        self.rff_encoding = GaussianEncoding(sigma=self.sigma, input_size=3, encoded_size=256)
+        self.mlp = nn.Sequential(nn.Linear(512, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 512))
+
+    def forward(self, location):
+        location = location.float()
+        x = self.rff_encoding(location)
+        x = self.mlp(x)
+        return x
+    
+class LocationEncoderCapsule(nn.Module):
+    def __init__(self, km=1, opt=None):
+        super().__init__()
+        self.opt = opt
+        Earth_Diameter = 12742
+        
+        self.sigma = Earth_Diameter / (3 * km)
+        self.layer_norm = nn.LayerNorm(512)
+        self.rff_encoding = GaussianEncoding(sigma=self.sigma, input_size=3, encoded_size=256)
+        self.mlp = nn.Sequential(nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 512))
+
+    def forward(self, location, z):
+        location = location.float()
+        z = self.layer_norm(z)
+        x = self.rff_encoding(location)
+        x = torch.cat((x, z), dim=1)
+        x = self.mlp(x)
+    
+        return x
+    
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
 
-        self.queue = []
-
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
-        self.LocEnc25k = getLocationEncoder(25)
-        self.LocEnc1k = getLocationEncoder(1)
+        self.LocEnc2500k = LocationEncoderBase(km=2500, opt=opt)
+        self.LocEnc750k = LocationEncoderCapsule(km=750, opt=opt)
+        self.LocEnc200k = LocationEncoderCapsule(km=200, opt=opt)
+        self.LocEnc25k = LocationEncoderCapsule(km=25, opt=opt)
+        self.LocEnc1k = LocationEncoderCapsule(km=1, opt=opt)
         
     def forward(self, location):
         location = location.float()
         L2500k = self.LocEnc2500k(location)
-        L750k = self.LocEnc750k(location)
-        L200k = self.LocEnc200k(location)
-        L25k = self.LocEnc25k(location)
-        L1k = self.LocEnc1k(location)
+        D750k = self.LocEnc750k(location, L2500k)
+        D200k = self.LocEnc200k(location, L2500k + D750k)
+        D25k = self.LocEnc25k(location, L2500k + D750k + D200k)
+        D1k = self.LocEnc1k(location, L2500k + D750k + D200k + D25k)
         
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        L750k = L2500k + D750k
+        L200k = L2500k + D750k + D200k
+        L25k = L2500k + D750k + D200k + D25k
+        L1k = L2500k + D750k + D200k + D25k + D1k
         
-        return location_features
+        scale_features = {'L2500k': L2500k, 'L750k': L750k, 'L200k': L200k, 'L25k': L25k, 'L1k': L1k}
+        location_features = L2500k + D750k + D200k + D25k + D1k
+        
+        return location_features, scale_features
     
 class ImageEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -86,17 +139,23 @@ class GeoCLIP(nn.Module):
     def forward(self, image, location, train=False):
         # Compute Features
         image_features = self.image_encoder(image)
-        location_features = self.location_encoder(location)
+        location_features, scales_features = self.location_encoder(location)
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
+        for scale in scales_features:
+            scales_features[scale] = F.normalize(scales_features[scale], dim=1)
         
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
         
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
+
+        logits_per_location_scales = {}
+        for scale in scales_features:
+            logits_per_location_scales[scale] = logit_scale * (scales_features[scale] @ image_features.t())
         
         scene_preds = None
             
@@ -105,7 +164,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds
+        return logits_per_image, logits_per_location, scene_preds, image_features, logits_per_location_scales
 
 class ViT(nn.Module):
     def __init__(self):
