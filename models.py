@@ -164,7 +164,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds, image_features, logits_per_location_scales
+        return logits_per_image, logits_per_location, scene_preds, logits_per_location_scales
 
 class ViT(nn.Module):
     def __init__(self):
