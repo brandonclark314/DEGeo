@@ -21,13 +21,13 @@ def getLocationEncoder(km):
     sigma = Earth_Diameter / (3 * km)
     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 1024),
+                         nn.Linear(512, 2048),
                          nn.ReLU(),
-                         nn.Linear(1024, 1024),
+                         nn.Linear(2048, 2048),
                          nn.ReLU(),
-                         nn.Linear(1024, 1024),
+                         nn.Linear(2048, 2048),
                          nn.ReLU(),
-                         nn.Linear(1024, 512))
+                         nn.Linear(2048, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -50,7 +50,7 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        location_features = L2500k + L750k + L200k + L25k + L1k
         
         return location_features
     
