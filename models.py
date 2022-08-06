@@ -63,15 +63,11 @@ class LocationEncoderCapsule(nn.Module):
         self.rff_encoding = GaussianEncoding(sigma=self.sigma, input_size=3, encoded_size=256)
         self.mlp = nn.Sequential(nn.Linear(1024, 1024),
                                  nn.ReLU(),
-                                 nn.Linear(1024, 1024),
-                                 nn.ReLU(),
-                                 nn.Linear(1024, 1024),
-                                 nn.ReLU(),
                                  nn.Linear(1024, 512))
 
     def forward(self, location, z):
         location = location.float()
-        z = self.layer_norm(z)
+        z = nn.ReLU()(z)
         x = self.rff_encoding(location)
         x = torch.cat((x, z), dim=1)
         x = self.mlp(x)
@@ -96,16 +92,10 @@ class LocationEncoder(nn.Module):
         D200k = self.LocEnc200k(location, L2500k + D750k)
         D25k = self.LocEnc25k(location, L2500k + D750k + D200k)
         D1k = self.LocEnc1k(location, L2500k + D750k + D200k + D25k)
-        
-        L750k = L2500k + D750k
-        L200k = L2500k + D750k + D200k
-        L25k = L2500k + D750k + D200k + D25k
-        L1k = L2500k + D750k + D200k + D25k + D1k
-        
-        scale_features = {'L2500k': L2500k, 'L750k': L750k, 'L200k': L200k, 'L25k': L25k, 'L1k': L1k}
+
         location_features = L2500k + D750k + D200k + D25k + D1k
         
-        return location_features, scale_features
+        return location_features
     
 class ImageEncoder(nn.Module):
     def __init__(self, opt=None):

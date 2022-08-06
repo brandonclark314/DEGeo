@@ -107,7 +107,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, scale_matrices = model(imgs, gps, train=True)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
         if opt.traintype == 'Classification':
@@ -119,7 +119,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
-            gps_loss = getGPSLoss(scale_matrices, targets).float()
+            gps_loss = img_criterion(gps_matrix, targets).float()
 
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -165,7 +165,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
-        if True and val_dataloader != None and i % (val_cycle * 5) == 0:
+        if True and val_dataloader != None and i % (val_cycle * 10) == 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -242,7 +242,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, scale_matrices = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)
