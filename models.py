@@ -129,23 +129,17 @@ class GeoCLIP(nn.Module):
     def forward(self, image, location, train=False):
         # Compute Features
         image_features = self.image_encoder(image)
-        location_features, scales_features = self.location_encoder(location)
+        location_features = self.location_encoder(location)
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
-        for scale in scales_features:
-            scales_features[scale] = F.normalize(scales_features[scale], dim=1)
         
         # Cosine similarity as logits (Image Features - Location Features)
         logit_scale = self.logit_scale.exp()
         
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
-
-        logits_per_location_scales = {}
-        for scale in scales_features:
-            logits_per_location_scales[scale] = logit_scale * (scales_features[scale] @ image_features.t())
         
         scene_preds = None
             
@@ -154,7 +148,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_location_scales
+        return logits_per_image, logits_per_location, scene_preds
 
 class ViT(nn.Module):
     def __init__(self):
