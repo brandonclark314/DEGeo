@@ -50,6 +50,7 @@ class LocationEncoderBase(nn.Module):
         location = location.float()
         x = self.rff_encoding(location)
         x = self.mlp(x)
+        x = F.normalize(x)
         return x
     
 class LocationEncoderCapsule(nn.Module):
@@ -63,15 +64,18 @@ class LocationEncoderCapsule(nn.Module):
         self.rff_encoding = GaussianEncoding(sigma=self.sigma, input_size=3, encoded_size=256)
         self.mlp = nn.Sequential(nn.Linear(1024, 1024),
                                  nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
+                                 nn.Linear(1024, 1024),
+                                 nn.ReLU(),
                                  nn.Linear(1024, 512))
 
     def forward(self, location, z):
         location = location.float()
-        z = nn.ReLU()(z)
         x = self.rff_encoding(location)
         x = torch.cat((x, z), dim=1)
         x = self.mlp(x)
-    
+        x = F.normalize(x)
         return x
     
 class LocationEncoder(nn.Module):
@@ -79,6 +83,7 @@ class LocationEncoder(nn.Module):
         super().__init__()
         self.opt = opt
 
+        self.Ws = [1, 1/2, 1/4, 1/8, 1/16]
         self.LocEnc2500k = LocationEncoderBase(km=2500, opt=opt)
         self.LocEnc750k = LocationEncoderCapsule(km=750, opt=opt)
         self.LocEnc200k = LocationEncoderCapsule(km=200, opt=opt)
@@ -86,14 +91,15 @@ class LocationEncoder(nn.Module):
         self.LocEnc1k = LocationEncoderCapsule(km=1, opt=opt)
         
     def forward(self, location):
-        location = location.float()
-        L2500k = self.LocEnc2500k(location)
-        D750k = self.LocEnc750k(location, L2500k)
-        D200k = self.LocEnc200k(location, L2500k + D750k)
-        D25k = self.LocEnc25k(location, L2500k + D750k + D200k)
-        D1k = self.LocEnc1k(location, L2500k + D750k + D200k + D25k)
+        location = location.float() 
+        
+        L2500k = self.LocEnc2500k(location) * self.Ws[0]
+        L750k = self.LocEnc750k(location, L2500k) * self.Ws[1]
+        L200k = self.LocEnc200k(location, L2500k + L750k) * self.Ws[2]
+        L25k = self.LocEnc25k(location, L2500k + L750k + L200k) * self.Ws[3]
+        L1k = self.LocEnc1k(location, L2500k + L750k + L200k + L25k) * self.Ws[4]
 
-        location_features =  L2500k + D750k + D200k + D25k + D1k
+        location_features =  L2500k + L750k + L200k + L25k + L1k
         
         return location_features
     
