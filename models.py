@@ -50,7 +50,6 @@ class LocationEncoderBase(nn.Module):
         location = location.float()
         x = self.rff_encoding(location)
         x = self.mlp(x)
-        x = F.normalize(x)
         return x
     
 class LocationEncoderCapsule(nn.Module):
@@ -74,7 +73,6 @@ class LocationEncoderCapsule(nn.Module):
         x = self.rff_encoding(location)
         x = torch.cat((x, z), dim=1)
         x = self.mlp(x)
-        x = F.normalize(x)
         return x
     
 class LocationEncoder(nn.Module):
