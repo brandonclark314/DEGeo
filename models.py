@@ -60,7 +60,6 @@ class LocationEncoderCapsule(nn.Module):
         Earth_Diameter = 12742
         
         self.sigma = Earth_Diameter / (3 * km)
-        self.layer_norm = nn.LayerNorm(512)
         self.rff_encoding = GaussianEncoding(sigma=self.sigma, input_size=3, encoded_size=256)
         self.mlp = nn.Sequential(nn.Linear(1024, 1024),
                                  nn.ReLU(),
@@ -82,8 +81,7 @@ class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
-
-        self.Ws = [1, 1/2, 1/4, 1/8, 1/16]
+        
         self.LocEnc2500k = LocationEncoderBase(km=2500, opt=opt)
         self.LocEnc750k = LocationEncoderCapsule(km=750, opt=opt)
         self.LocEnc200k = LocationEncoderCapsule(km=200, opt=opt)
@@ -93,11 +91,11 @@ class LocationEncoder(nn.Module):
     def forward(self, location):
         location = location.float() 
         
-        L2500k = self.LocEnc2500k(location) * self.Ws[0]
-        L750k = self.LocEnc750k(location, L2500k) * self.Ws[1]
-        L200k = self.LocEnc200k(location, L2500k + L750k) * self.Ws[2]
-        L25k = self.LocEnc25k(location, L2500k + L750k + L200k) * self.Ws[3]
-        L1k = self.LocEnc1k(location, L2500k + L750k + L200k + L25k) * self.Ws[4]
+        L2500k = self.LocEnc2500k(location) 
+        L750k = self.LocEnc750k(location, L2500k) 
+        L200k = self.LocEnc200k(location, L2500k + L750k)
+        L25k = self.LocEnc25k(location, L2500k + L750k + L200k)
+        L1k = self.LocEnc1k(location, L2500k + L750k + L200k + L25k)
 
         location_features =  L2500k + L750k + L200k + L25k + L1k
         
