@@ -110,7 +110,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             gps_loss = img_criterion(gps_matrix, targets).float()
         
             if opt.scene:
-                scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
+                scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
