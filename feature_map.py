@@ -23,11 +23,10 @@ def plot_feature_map(model, opt=None):
     for color, coord in zip(colors, coords):
         img_color[coord[0].int() + 90, coord[1].int() + 180] = color
         
-    img_color = torch.clamp(img_color, 0, 1)
+    img_color = torch.clamp(img_color, 0, 255)
     
     img_final = torch.Tensor(cm.viridis(img_color))
     img_final= img_final.permute(2, 0, 1)
-    img_final = img_final * 255
     
     img_final = T.ToPILImage()(img_final)
     
