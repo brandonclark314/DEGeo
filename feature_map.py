@@ -31,5 +31,7 @@ def plot_feature_map(model, opt=None):
     
     img_final = T.ToPILImage()(img_final)
     
+    new_img = img_final.resize((540, 1080),Image.BICUBIC)
+    
     # Plot image
-    wandb.log({"Feature Map": wandb.Image(img_final)})
+    wandb.log({"Feature Map": wandb.Image(new_img)})
