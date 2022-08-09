@@ -138,7 +138,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor365(image_features)]
             
         latent, reconstructed = self.autoencoder(image_features.detach())
-        latent, reconstructed = F.normalize(reconstructed, dim=1)
+        reconstructed = F.normalize(reconstructed, dim=1)
         
         autoencoder_data = {"original": image_features,
                             "reconstructed": reconstructed}
