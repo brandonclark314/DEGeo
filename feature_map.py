@@ -13,8 +13,7 @@ def plot_feature_map(model, opt=None):
 
     # Create image
     coords = torch.meshgrid(torch.arange(-90, 90), torch.arange(-180, 180))
-    coords = torch.stack(coords, dim=-1).reshape(-1, 2).float()
-    coords = torch.Tensor(coords).to(opt.device)
+    coords = torch.stack(coords, dim=-1).reshape(-1, 2).float().to(opt.device)
     colors = model.project3D(coords)
     colors = colors.detach().cpu()
 
