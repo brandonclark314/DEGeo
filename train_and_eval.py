@@ -7,6 +7,7 @@ import numpy as np
 
 from colorama import Fore, Style
 from infonce import InfoNCE
+from feature_map import plot_feature_map
 
 # from einops import rearrange
 import torch
@@ -95,7 +96,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
+            img_matrix, gps_matrix, scene_pred, autoencoder_data = model(imgs, gps, train=True)
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
         if opt.traintype == 'Classification':
@@ -108,13 +109,15 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
+            autoencoder_loss = nn.MSELoss()(autoencoder_data["reconstructed"],
+                                            autoencoder_data["original"])
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = (img_loss + gps_loss) / 2 + autoencoder_loss
                 
         if opt.traintype == 'Classification':
             
@@ -147,6 +150,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
+                wandb.log({"Autoencoder Loss": autoencoder_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -222,6 +226,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     targets = []
 
     model.eval()
+    plot_feature_map(model)
     
     for i, (imgs, labels, scenes) in bar:
         labels = labels.cpu().numpy()
@@ -230,7 +235,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred, autoencoder_data = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)

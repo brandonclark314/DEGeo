@@ -15,6 +15,7 @@ import torchvision.models as models
 from config import getopt
 from infonce import InfoNCE
 from coordinates import toCartesian, toLatLon
+from feature_map import plot_feature_map
 
 def getLocationEncoder(km):
     Earth_Diameter = 12742
@@ -27,7 +28,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 128))
+                         nn.Linear(1024, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -59,13 +60,36 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 128))
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
+    
+class AutoEncoder(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+        self.encoder = nn.Sequential(nn.Linear(512, 512),
+                                     nn.ReLU(),
+                                     nn.Linear(512, 256),
+                                     nn.ReLU(),
+                                     nn.Linear(256, 3),
+                                     nn.BatchNorm1d(3))
+        
+        self.decoder = nn.Sequential(nn.Linear(3, 256),
+                                     nn.ReLU(),
+                                     nn.Linear(256, 512),
+                                     nn.ReLU(),
+                                     nn.Linear(512, 512))
+                                    
+        
+    def forward(self, embedding):
+        latent = self.encoder(embedding)
+        reconstructed = self.decoder(latent)
+        return latent, reconstructed
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -77,11 +101,19 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
+        self.autoencoder = AutoEncoder(opt)
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(512, 3)
             self.scene_predictor16 = nn.Linear(512, 16)
             self.scene_predictor365 = nn.Linear(512, 365)
+            
+    def project3D(self, coords):
+        gps = toCartesian(coords)
+        gps_embeddings = self.location_encoder(gps)
+        latent, reconstructed = self.autoencoder(gps_embeddings)
+        
+        return latent
                                              
     def forward(self, image, location, train=False):
         # Compute Features
@@ -104,8 +136,14 @@ class GeoCLIP(nn.Module):
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
+            
+        reconstructed = self.autoencoder(image_features.detach())
+        reconstructed = F.normalize(reconstructed, dim=1)
+        
+        autoencoder_data = {"original": image_features,
+                            "reconstructed": reconstructed}
 
-        return logits_per_image, logits_per_location, scene_preds
+        return logits_per_image, logits_per_location, scene_preds, autoencoder_data
 
 class ViT(nn.Module):
     def __init__(self):
@@ -208,7 +246,7 @@ if __name__ == "__main__":
         location = torch.randn(32, 3)
         print("Image: ", i)
         with torch.no_grad():
-            image_features, location_features, scenes_pred, img_loss, gps_loss = model(image, location, train=True)
+            image_features, location_features, scenes_pred = model(image, location, train=True)
         
     print(image_features.dtype)
     print(location_features.dtype)
@@ -222,8 +260,7 @@ if __name__ == "__main__":
 
     torch.set_printoptions(edgeitems=30)
     
-    print("Image Loss: ", img_loss)
-    print("GPS Loss: ", gps_loss)
+    plot_feature_map(model)
 
     # Compute the loss
     # loss = 0
