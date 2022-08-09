@@ -76,10 +76,10 @@ class AutoEncoder(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(512, 256),
                                      nn.ReLU(),
-                                     nn.Linear(256, 3),
-                                     nn.BatchNorm1d(3))
+                                     nn.Linear(256, 1),
+                                     nn.BatchNorm1d(1))
         
-        self.decoder = nn.Sequential(nn.Linear(3, 256),
+        self.decoder = nn.Sequential(nn.Linear(1, 256),
                                      nn.ReLU(),
                                      nn.Linear(256, 512),
                                      nn.ReLU(),
