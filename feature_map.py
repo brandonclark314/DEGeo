@@ -28,6 +28,7 @@ def plot_feature_map(model, opt=None):
     img_final = img_color - 0.5 * img
     
     # Clip img to be between 0 and 255
+    img_final= img_final.permute(2, 0, 1)
     img_final = torch.clamp(img_final, 0, 1)
     img_final = img_final * 255
     
