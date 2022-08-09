@@ -226,7 +226,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     targets = []
 
     model.eval()
-    plot_feature_map(model)
+    plot_feature_map(model, opt=opt)
     
     for i, (imgs, labels, scenes) in bar:
         labels = labels.cpu().numpy()
