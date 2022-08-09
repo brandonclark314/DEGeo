@@ -5,12 +5,11 @@ import wandb
 import torch
 import torchvision
 import torchvision.transforms as T
-from matplotlib import cm
 from PIL import Image
 
 def plot_feature_map(model, opt=None):
-    # img = torch.tensor(plt.imread('planet.png'))
-    # img = img[:, :, :3]
+    img = torch.tensor(plt.imread('planet.png'))
+    img = img[:, :, :3]
 
     # Create image
     coords = torch.meshgrid(torch.arange(-90, 90), torch.arange(-180, 180))
@@ -19,13 +18,19 @@ def plot_feature_map(model, opt=None):
     colors = colors.detach().cpu()
 
     # Get Features
-    img_color = torch.randn((180, 360))
+    img_color = img.clone()
     for color, coord in zip(colors, coords):
-        img_color[coord[0].int() + 90, coord[1].int() + 180] = color
+        img_color[coord[0].int() + 90, coord[1].int() + 180, :] = color
         
-    img_color = torch.clamp(img_color, 0, 255)
-    img_final = torch.Tensor(cm.viridis(img_color))
+    img = (img - img.mean()) / img.std()
+    
+    # Final Image
+    img_final = img_color - 0.5 * img
+    
+    # Clip img to be between 0 and 255
     img_final= img_final.permute(2, 0, 1)
+    img_final = torch.clamp(img_final, 0, 1)
+    img_final = img_final * 255
     
     img_final = T.ToPILImage()(img_final)
     

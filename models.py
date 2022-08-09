@@ -76,10 +76,10 @@ class AutoEncoder(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(512, 256),
                                      nn.ReLU(),
-                                     nn.Linear(256, 1),
+                                     nn.Linear(256, 3),
                                      nn.BatchNorm1d(1))
         
-        self.decoder = nn.Sequential(nn.Linear(1, 256),
+        self.decoder = nn.Sequential(nn.Linear(3, 256),
                                      nn.ReLU(),
                                      nn.Linear(256, 512),
                                      nn.ReLU(),
@@ -112,7 +112,6 @@ class GeoCLIP(nn.Module):
         gps = toCartesian(coords)
         gps_embeddings = self.location_encoder(gps)
         latent, reconstructed = self.autoencoder(gps_embeddings)
-        
         return latent
                                              
     def forward(self, image, location, train=False):
@@ -137,10 +136,10 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
             
-        latent, reconstructed = self.autoencoder(image_features.detach())
+        latent, reconstructed = self.autoencoder(location_features.detach())
         reconstructed = F.normalize(reconstructed, dim=1)
         
-        autoencoder_data = {"original": image_features,
+        autoencoder_data = {"original": location_features,
                             "reconstructed": reconstructed}
 
         return logits_per_image, logits_per_location, scene_preds, autoencoder_data
