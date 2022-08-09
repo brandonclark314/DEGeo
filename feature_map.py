@@ -20,5 +20,12 @@ def plot_feature_map(model, opt=None):
         
     img = (img - img.mean()) / img.std()
     
+    # Final Image
+    img_final = img_color - 0.5 * img
+    
+    # Clip img to be between 0 and 255
+    img_final = torch.clamp(img_final, 0, 1)
+    img_final = img_final * 255
+    
     # Plot image
-    wandb.log({"Feature Map": wandb.Image(img_color - 0.5 * img)})
+    wandb.log({"Feature Map": wandb.Image(img_final)})
