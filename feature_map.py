@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 import wandb
+import torch
+import torchvision
+import torchvision.transforms as T
+from PIL import Image
 
 def plot_feature_map(model, opt=None):
     img = torch.tensor(plt.imread('planet.png'))
@@ -26,6 +30,8 @@ def plot_feature_map(model, opt=None):
     # Clip img to be between 0 and 255
     img_final = torch.clamp(img_final, 0, 1)
     img_final = img_final * 255
+    
+    img_final = T.ToPILImage()(img_final)
     
     # Plot image
     wandb.log({"Feature Map": wandb.Image(img_final)})
