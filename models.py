@@ -68,7 +68,7 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None, dim = 512):
+    def __init__(self,  input_resolution=224, opt=None, dim = 768):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
