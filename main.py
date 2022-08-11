@@ -51,13 +51,12 @@ if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
 
 # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
-optimizer = torch.optim.Adam(model.parameters(),
-                             betas=(0.9, 0.98),
-                             eps=1e-6,
-                             lr=opt.lr, weight_decay=0.2) # Original
+optimizer = torch.optim.RAdam(model.parameters(),
+                              betas=(0.9, 0.98),
+                              eps=1e-6,
+                              lr=opt.lr, weight_decay=0.2) # Original
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
-scheduler_warmup = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=3, after_scheduler=scheduler)
 
 _ = model.to(opt.device)
 wandb.watch(model, img_criterion, log="all")
@@ -81,7 +80,7 @@ for epoch in range(opt.n_epochs):
     if not opt.evaluate:
         _ = model.train()
 
-        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, scene_criterion=scene_criterion, optimizer=optimizer, scheduler=scheduler_warmup, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
+        loss = train_images(train_dataloader=train_dataloader, model=model, img_criterion=img_criterion, scene_criterion=scene_criterion, optimizer=optimizer, scheduler=scheduler, opt=opt, epoch=epoch, val_dataloader=val_dataloader)
 
     torch.save(model.state_dict(), 'weights/' + opt.description + '.pth')
 
