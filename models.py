@@ -22,10 +22,13 @@ def getLocationEncoder(km):
     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
                          nn.Linear(512, 1024),
+                         nn.Dropout(0.1),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
+                         nn.Dropout(0.1),
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
+                         nn.Dropout(0.1),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
     
@@ -50,7 +53,7 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
         
-        location_features = (L2500k + L750k + L200k + L25k + L1k) / 5
+        location_features = L2500k + L750k + L200k + L25k + L1k
         
         return location_features
     
@@ -72,9 +75,8 @@ class GeoCLIP(nn.Module):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
-        self.K = 4096
+        self.K = 32000
         self.m = 0.999 # MoCo Momentum
-        self.T = 0.07 # Softmax temperature
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
