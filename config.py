@@ -29,8 +29,8 @@ def getopt():
     opt.hier_eval = False
 
     # opt.lr = 3e-5
-    # opt.lr = 5e-4
-    opt.lr = 0.03
+    opt.lr = 5e-4
+    # opt.lr = 0.03
     opt.step_size = 3
     opt.partition = 'fine'
 
