@@ -27,7 +27,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 512))
+                         nn.Linear(1024, 768))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -59,7 +59,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 768))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -72,7 +72,7 @@ class GeoCLIP(nn.Module):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
-        self.K = 16384
+        self.K = 32768
         self.m = 0.999 # MoCo Momentum
         
         self.input_resolution = input_resolution

@@ -54,7 +54,7 @@ if opt.evaluate:
 optimizer = torch.optim.RAdam(model.parameters(),
                               betas=(0.9, 0.98),
                               eps=1e-6,
-                              lr=opt.lr, weight_decay=0.2) # Original
+                              lr=opt.lr, weight_decay=0.2) 
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
