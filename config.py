@@ -16,28 +16,28 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP4_7M Adam (256) Q32K.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) Q32K.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x 100 768Dim.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP4.7M Adam (256) Q32K'
+    opt.description = 'GeoCLIP100K Adam (256) Q32K'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False
     opt.hier_eval = False
 
     # opt.lr = 3e-5
-    opt.lr = 5e-6
+    opt.lr = 5e-4
     # opt.lr = 0.01
     opt.step_size = 3
     opt.partition = 'fine'
 
-    opt.queue_bs_multiplier = 125
+    opt.queue_bs_multiplier = 128
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
-    opt.trainset = 'train'
+    opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
