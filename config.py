@@ -22,7 +22,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K RAdam D768 (256) Q32K'
+    opt.description = 'GeoCLIP100K RAdam (256) Q32K'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False

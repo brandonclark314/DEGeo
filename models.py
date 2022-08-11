@@ -27,7 +27,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 768))
+                         nn.Linear(1024, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -59,7 +59,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 768))
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -68,15 +68,15 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None, dim = 768):
+    def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
         self.K = 32768
         self.m = 0.999 # MoCo Momentum
+        self.T = 0.07 # MoCo Temperature
         
         self.input_resolution = input_resolution
-        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
@@ -151,9 +151,7 @@ class GeoCLIP(nn.Module):
         location_features = F.normalize(location_features, dim=1)
         
         # Cosine similarity as logits (Image Features - Location Features)
-        logit_scale = self.logit_scale.exp()
-        
-        logits_per_image = logit_scale * (image_features @ location_features.t())
+        logits_per_image = (image_features @ location_features.t()) / self.T
         logits_per_location = logits_per_image.t()
         
         scene_preds = None
@@ -183,24 +181,13 @@ class GeoCLIP(nn.Module):
             location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
             
             # Cosine similarity (Image Features - Momentum Location Feature Queue)
-            logits_per_image_momentum = logit_scale * (image_features @ location_embeddings)
+            logits_per_image_momentum = (image_features @ location_embeddings) / self.T
             
             # Cosine similarity (Location Features - Momentum Image Feature Queue)
-            logits_per_location_momentum = logit_scale * (location_features @ image_embeddings)
+            logits_per_location_momentum = (location_features @ image_embeddings) / self.T
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
-            
-            # GPS Regularization Predictions
-            # gps_reg_preds = self.gps_mlp(F.normalize(image_features + location_features, dim=1))
-            # gps_reg_preds = self.gps_mlp(image_features)
-        else:
-            pass
-            # GPS Regularization Predictions
-            # gps_reg_preds = self.gps_mlp(image_features)
-            
-        # Normalize GPS 
-        # gps_reg_preds = F.normalize(gps_reg_preds, dim=1)
 
         return logits_per_image, logits_per_location, scene_preds, logits_per_image_momentum, logits_per_location_momentum
 
