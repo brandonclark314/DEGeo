@@ -29,9 +29,9 @@ def getopt():
     opt.hier_eval = False
 
     # opt.lr = 3e-5
-    opt.lr = 5e-5
+    opt.lr = 1e-2
     # opt.lr = 0.03
-    opt.step_size = 3
+    opt.step_size = 5
     opt.partition = 'fine'
 
     opt.queue_size = 32768
