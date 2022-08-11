@@ -67,29 +67,6 @@ class ImageEncoder(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
-    
-class AutoEncoder(nn.Module):
-    def __init__(self, opt=None):
-        super().__init__()
-        self.opt = opt
-        self.encoder = nn.Sequential(nn.Linear(512, 512),
-                                     nn.ReLU(),
-                                     nn.Linear(512, 256),
-                                     nn.ReLU(),
-                                     nn.Linear(256, 3),
-                                     nn.BatchNorm1d(1))
-        
-        self.decoder = nn.Sequential(nn.Linear(3, 256),
-                                     nn.ReLU(),
-                                     nn.Linear(256, 512),
-                                     nn.ReLU(),
-                                     nn.Linear(512, 512))
-                                    
-        
-    def forward(self, embedding):
-        latent = self.encoder(embedding)
-        reconstructed = self.decoder(latent)
-        return latent, reconstructed
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -101,18 +78,11 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
-        self.autoencoder = AutoEncoder(opt)
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(512, 3)
             self.scene_predictor16 = nn.Linear(512, 16)
             self.scene_predictor365 = nn.Linear(512, 365)
-            
-    def project3D(self, coords):
-        gps = toCartesian(coords)
-        gps_embeddings = self.location_encoder(gps)
-        latent, reconstructed = self.autoencoder(gps_embeddings)
-        return latent
                                              
     def forward(self, image, location, train=False):
         # Compute Features
@@ -135,14 +105,8 @@ class GeoCLIP(nn.Module):
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
-            
-        latent, reconstructed = self.autoencoder(location_features.detach())
-        reconstructed = F.normalize(reconstructed, dim=1)
-        
-        autoencoder_data = {"original": location_features,
-                            "reconstructed": reconstructed}
 
-        return logits_per_image, logits_per_location, scene_preds, autoencoder_data
+        return logits_per_image, logits_per_location, scene_preds
 
 class ViT(nn.Module):
     def __init__(self):
