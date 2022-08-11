@@ -72,7 +72,7 @@ class GeoCLIP(nn.Module):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
-        self.K = 32768
+        self.K = 16384
         self.m = 0.999 # MoCo Momentum
         
         self.input_resolution = input_resolution
