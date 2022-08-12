@@ -21,13 +21,13 @@ def getLocationEncoder(km):
     sigma = Earth_Diameter / (3 * km)
     rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 2048),
+                         nn.Linear(512, 1024),
                          nn.ReLU(),
-                         nn.Linear(2048, 2048),
+                         nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(2048, 2048),
+                         nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(2048, 512))
+                         nn.Linear(1024, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -73,7 +73,7 @@ class GeoCLIP(nn.Module):
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
         self.K = opt.queue_size
-        self.m = 0.999 # MoCo Momentum
+        self.m = 0.99 # MoCo Momentum
         self.T = 0.07 # MoCo Temperature
         
         self.input_resolution = input_resolution
