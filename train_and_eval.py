@@ -6,7 +6,6 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 from colorama import Fore, Style
-from infonce import InfoNCE
 from feature_map import plot_feature_map
 
 # from einops import rearrange

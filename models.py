@@ -13,7 +13,6 @@ from rff.layers import GaussianEncoding
 from torch.autograd import Variable
 import torchvision.models as models
 from config import getopt
-from infonce import InfoNCE
 from coordinates import toCartesian, toLatLon
 from feature_map import plot_feature_map
 
