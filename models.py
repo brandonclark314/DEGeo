@@ -20,15 +20,15 @@ from feature_map import plot_feature_map
 def getLocationEncoder(km):
     Earth_Diameter = 12742
     sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=30)
     return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 1024),
+                         nn.Linear(60, 256),
                          nn.ReLU(),
-                         nn.Linear(1024, 1024),
+                         nn.Linear(256, 256),
                          nn.ReLU(),
-                         nn.Linear(1024, 1024),
+                         nn.Linear(256, 256),
                          nn.ReLU(),
-                         nn.Linear(1024, 512))
+                         nn.Linear(256, 128))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -60,7 +60,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 128))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
