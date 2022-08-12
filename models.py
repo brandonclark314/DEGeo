@@ -69,7 +69,7 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None, dim = 512):
+    def __init__(self,  input_resolution=224, opt=None, dim = 128):
         super().__init__()
         self.opt = opt
         
@@ -80,9 +80,9 @@ class GeoCLIP(nn.Module):
         self.location_encoder = LocationEncoder(opt)
         
         if self.opt.scene:
-            self.scene_predictor3 = nn.Linear(512, 3)
-            self.scene_predictor16 = nn.Linear(512, 16)
-            self.scene_predictor365 = nn.Linear(512, 365)
+            self.scene_predictor3 = nn.Linear(dim, 3)
+            self.scene_predictor16 = nn.Linear(dim, 16)
+            self.scene_predictor365 = nn.Linear(dim, 365)
                                              
     def forward(self, image, location, train=False):
         # Compute Features
