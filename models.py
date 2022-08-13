@@ -81,19 +81,19 @@ class LocationEncoder(nn.Module):
         self.opt = opt
         
         self.LocEnc2500k = LocationEncoderBase(km=2500, opt=opt)
-        self.LocEnc750k = LocationEncoderCapsule(km=750, opt=opt)
-        self.LocEnc200k = LocationEncoderCapsule(km=200, opt=opt)
-        self.LocEnc25k = LocationEncoderCapsule(km=25, opt=opt)
-        self.LocEnc1k = LocationEncoderCapsule(km=1, opt=opt)
+        self.LocEnc750k = LocationEncoderBase(km=750, opt=opt)
+        self.LocEnc200k = LocationEncoderBase(km=200, opt=opt)
+        self.LocEnc25k = LocationEncoderBase(km=25, opt=opt)
+        self.LocEnc1k = LocationEncoderBase(km=1, opt=opt)
         
     def forward(self, location):
         location = location.float() 
         
         L2500k = self.LocEnc2500k(location) 
-        L750k = self.LocEnc750k(location, L2500k) 
-        L200k = self.LocEnc200k(location, L2500k + L750k)
-        L25k = self.LocEnc25k(location, L2500k + L750k + L200k)
-        L1k = self.LocEnc1k(location, L2500k + L750k + L200k + L25k)
+        L750k = self.LocEnc750k(location) 
+        L200k = self.LocEnc200k(location)
+        L25k = self.LocEnc25k(location)
+        L1k = self.LocEnc1k(location)
 
         location_features =  L2500k + L750k + L200k + L25k + L1k
         
@@ -111,6 +111,17 @@ class ImageEncoder(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
+
+class GPSDecoder(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+        self.mlp = nn.Sequential(nn.Linear(512, 3))
+        
+    def forward(self, img_features):
+        gps_pred = self.mlp(img_features)
+        gps_pred = F.normalize(gps_pred)
+        return gps_pred
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 512):
@@ -122,13 +133,14 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
+        self.gps_decoder = GPSDecoder(opt)
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(512, 3)
             self.scene_predictor16 = nn.Linear(512, 16)
             self.scene_predictor365 = nn.Linear(512, 365)
                                              
-    def forward(self, image, location, train=False):
+    def forward(self, image, location):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
@@ -143,14 +155,18 @@ class GeoCLIP(nn.Module):
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
         
+        # Predict Scene
         scene_preds = None
-            
+
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds
+        # Decode GPS
+        gps_preds = self.gps_decoder(image_features)
+
+        return logits_per_image, logits_per_location, scene_preds, gps_preds
 
 class ViT(nn.Module):
     def __init__(self):
