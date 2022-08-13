@@ -127,7 +127,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_pred_loss) / 2
+                loss = (img_loss + gps_loss + gps_pred_loss) / 3
                 
         if opt.traintype == 'Classification':
             
