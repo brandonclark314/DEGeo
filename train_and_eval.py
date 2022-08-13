@@ -120,7 +120,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_pred_loss = torch.nn.MSELoss()(gps_pred, gps)
+            gps_pred_loss = torch.nn.MSELoss()(gps_pred, gps).float()
 
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
