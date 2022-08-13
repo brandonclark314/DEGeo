@@ -85,7 +85,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         batch_size = imgs.shape[0]
 
         if opt.traintype == 'CLIP':
-            gps = classes.to(opt.device)
+            gps = classes.to(opt.device).float()
         if opt.traintype == 'Classification':
             coarse = classes[:,0].type(torch.LongTensor)
             coarse = coarse.to(opt.device)
