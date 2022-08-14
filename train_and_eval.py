@@ -51,16 +51,12 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
-def getGPSLoss(scale_matrices, targets):
-    criterion = torch.nn.CrossEntropyLoss()
-    
+def GPSLoss(gps_pred, gps, T=0.07):
     loss = 0
-    for scale in scale_matrices:
-        scale_matrix = scale_matrices[scale]
-        loss += criterion(scale_matrix, targets)
-        
-    loss = loss / len(scale_matrices)
-    
+    loss = nn.CosineSimilarity()(gps_pred, gps)
+    loss = torch.sigmoid(loss / T)
+    loss = -torch.log(loss)
+    loss = torch.mean(loss)
     return loss
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
@@ -120,14 +116,14 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_pred_loss = 10 * torch.nn.MSELoss()(gps_pred, gps).float()
+            gps_pred_loss = GPSLoss(gps_pred, gps).float()
 
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_pred_loss) / 3
+                loss = (img_loss + gps_loss) / 2 + gps_pred_loss
                 
         if opt.traintype == 'Classification':
             
