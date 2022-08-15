@@ -77,6 +77,7 @@ class GeoCLIP(nn.Module):
         self.T = 0.07 # MoCo Temperature
         
         self.input_resolution = input_resolution
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
@@ -145,13 +146,14 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
+        logit_scale = self.logit_scale.exp()
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
         
         # Cosine similarity as logits (Image Features - Location Features)
-        logits_per_image = (image_features @ location_features.t()) / self.T
+        logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
         
         scene_preds = None
@@ -181,10 +183,10 @@ class GeoCLIP(nn.Module):
             location_embeddings = torch.cat([momentum_location_features.t(), self.loc_queue.clone().detach()], dim=1)
             
             # Cosine similarity (Image Features - Momentum Location Feature Queue)
-            logits_per_image_momentum = (image_features @ location_embeddings) / self.T
+            logits_per_image_momentum = logit_scale * (image_features @ location_embeddings) 
             
             # Cosine similarity (Location Features - Momentum Image Feature Queue)
-            logits_per_location_momentum = (location_features @ image_embeddings) / self.T
+            logits_per_location_momentum = logit_scale * (location_features @ image_embeddings) 
             
             # Add Encodings to Queue
             self._dequeue_and_enqueue(momentum_image_features, momentum_location_features)
