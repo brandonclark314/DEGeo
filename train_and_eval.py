@@ -51,11 +51,6 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
-def GPS_Loss(gps_targets, gps_preds, tau=16):
-    cos_sim = nn.CosineSimilarity()(gps_targets, gps_preds)
-    loss = - tau * torch.mean(torch.log((cos_sim + 1) / 2))
-    return loss
-
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []

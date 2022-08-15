@@ -28,7 +28,7 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
-    
+
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
