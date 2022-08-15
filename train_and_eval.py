@@ -154,7 +154,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
                 wandb.log({"Scene Loss": scene_loss.item()})
-        if True and val_dataloader != None and i % (val_cycle * 2) == 0 and i > 0:
+        if True and val_dataloader != None and i % (val_cycle * 1) == 0 and i > 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
