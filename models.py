@@ -27,7 +27,7 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(1024, 512))
+                         nn.Linear(1024, 128))
 
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
@@ -59,7 +59,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 128))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -68,7 +68,7 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None, dim = 512):
+    def __init__(self,  input_resolution=224, opt=None, dim = 128):
         super().__init__()
         self.opt = opt
         # self.K = opt.batch_size * opt.queue_bs_multiplier # Queue Size
@@ -84,8 +84,6 @@ class GeoCLIP(nn.Module):
         
         self.momentum_image_encoder = ImageEncoder(opt)
         self.momentum_location_encoder = LocationEncoder(opt)
-        
-        # self.gps_mlp = nn.Sequential(nn.Linear(512, 3))
         
         # Copy encoders to momentum encoders
         for param, param_m in zip(self.image_encoder.parameters(), self.momentum_image_encoder.parameters()):
@@ -106,9 +104,9 @@ class GeoCLIP(nn.Module):
         self.register_buffer("loc_queue_ptr", torch.zeros(1, dtype=torch.long))
         
         if self.opt.scene:
-            self.scene_predictor3 = nn.Linear(512, 3)
-            self.scene_predictor16 = nn.Linear(512, 16)
-            self.scene_predictor365 = nn.Linear(512, 365)
+            self.scene_predictor3 = nn.Linear(dim, 3)
+            self.scene_predictor16 = nn.Linear(dim, 16)
+            self.scene_predictor365 = nn.Linear(dim, 365)
             
     @torch.no_grad()
     def _momentum_update(self):
