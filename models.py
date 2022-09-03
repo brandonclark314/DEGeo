@@ -101,7 +101,7 @@ class GeoCLIP(nn.Module):
     @torch.no_grad()
     def _dequeue_and_enqueue(self, gps_keys):
         opt = self.opt
-        gps_batch_size = img_keys.shape[0]
+        gps_batch_size = gps_keys.shape[0]
         batch_size = opt.batch_size
 
         gps_ptr = int(self.gps_queue_ptr)
@@ -109,10 +109,9 @@ class GeoCLIP(nn.Module):
         assert self.K % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.img_gps[:, gps_ptr:gps_ptr + gps_batch_size] = gps_keys.t()
+        self.gps_queue[:, gps_ptr:gps_ptr + gps_batch_size] = gps_keys.t()
         gps_ptr = (gps_ptr + batch_size) % self.K  # move pointer
         self.gps_queue_ptr[0] = gps_ptr
-        
                                              
     def forward(self, image, location, train=False):
         # Compute Features
