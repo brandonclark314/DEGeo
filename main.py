@@ -27,8 +27,10 @@ config = {
     'architecture' : opt.archname
 }
 
+
 wandb.init(project='DEGeo', 
         entity='vicentevivan',
+        settings=wandb.Settings(start_method='fork'),
         config=config)
 wandb.run.name = opt.description
 wandb.save()
