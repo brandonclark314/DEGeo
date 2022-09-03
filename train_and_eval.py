@@ -95,8 +95,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, \
-            img_momentum_matrix, gps_momentum_matrix = model(imgs, gps, train=True)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
 
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             
@@ -108,15 +107,14 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':     
-            img_loss = img_criterion(img_momentum_matrix, targets).float()
-            gps_loss = img_criterion(gps_momentum_matrix, targets).float()
+            img_loss = img_criterion(img_matrix, targets).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = img_loss
                 
         if opt.traintype == 'Classification':
             

@@ -16,28 +16,28 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) CLIP 128D Q4K.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (32) GPS-Q32.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x 100 768Dim.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (256) Adam 128D Q4K'
+    opt.description = 'GeoCLIP100K SGD (32) GPS-Q32K'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False
     opt.hier_eval = False
 
-    opt.lr = 3e-5
+    # opt.lr = 3e-5
     # opt.lr = 5e-4
-    # opt.lr = 1e-2
+    opt.lr = 1e-2
     # opt.lr = 0.03
     opt.step_size = 5
     opt.partition = 'fine'
 
-    # opt.queue_size = 32768
-    opt.queue_size = 4096
-    opt.batch_size = 256
+    opt.queue_size = 32768
+    # opt.queue_size = 4096
+    opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
