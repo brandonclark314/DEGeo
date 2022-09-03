@@ -27,7 +27,6 @@ config = {
     'architecture' : opt.archname
 }
 
-
 wandb.init(project='DEGeo', 
         entity='vicentevivan',
         settings=wandb.Settings(start_method='fork'),
@@ -52,8 +51,8 @@ model = models.GeoCLIP(opt=opt)
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
 
-optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
-# optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
+# optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001)
                              
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
