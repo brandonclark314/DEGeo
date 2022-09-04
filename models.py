@@ -92,9 +92,8 @@ class GeoCLIP(nn.Module):
             self.scene_predictor16 = nn.Linear(dim, 16)
             self.scene_predictor365 = nn.Linear(dim, 365)
             
-    @torch.no_grad()
     def _get_gps_queue_features(self):
-        self.gps_queue = self.gps_queue.clone().detach()
+        self.gps_queue = self.gps_queue.detach()
         location_features = self.location_encoder(self.gps_queue.t())
         return location_features
             
@@ -139,7 +138,7 @@ class GeoCLIP(nn.Module):
             location_queue_features = F.normalize(self._get_gps_queue_features(), dim=1)
 
             # Get Positive + Negatives
-            location_embeddings = torch.cat([location_features, location_queue_features.detach()], dim=0)
+            location_embeddings = torch.cat([location_features, location_queue_features], dim=0)
             
             # Cosine similarity (Image Features - Location Feature Queue)
             logits_per_image = logit_scale * (image_features @ location_embeddings.t())
