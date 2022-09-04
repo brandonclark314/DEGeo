@@ -19,38 +19,36 @@ from feature_map import plot_feature_map
 def getLocationEncoder(km):
     Earth_Diameter = 12742
     sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=30)
+    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
-                         nn.Linear(60, 256),
+                         nn.Linear(512, 1024),
                          nn.ReLU(),
-                         nn.Linear(256, 256),
+                         nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(256, 256),
+                         nn.Linear(1024, 1024),
                          nn.ReLU(),
-                         nn.Linear(256, 128))
+                         nn.Linear(1024, 512))
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
 
-        self.queue = []
-
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
+        # self.LocEnc2500k = getLocationEncoder(2500)
+        # self.LocEnc750k = getLocationEncoder(750)
+        # self.LocEnc200k = getLocationEncoder(200)
         self.LocEnc25k = getLocationEncoder(25)
-        self.LocEnc1k = getLocationEncoder(1)
+        # self.LocEnc1k = getLocationEncoder(1)
         
     def forward(self, location):
         location = location.float()
-        L2500k = self.LocEnc2500k(location)
-        L750k = self.LocEnc750k(location)
-        L200k = self.LocEnc200k(location)
+        # L2500k = self.LocEnc2500k(location)
+        # L750k = self.LocEnc750k(location)
+        # L200k = self.LocEnc200k(location)
         L25k = self.LocEnc25k(location)
-        L1k = self.LocEnc1k(location)
+        # L1k = self.LocEnc1k(location)
         
-        location_features = L2500k + L750k + L200k + L25k + L1k
+        location_features = L25k
         
         return location_features
     
@@ -59,7 +57,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 128))
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -68,7 +66,7 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self,  input_resolution=224, opt=None, dim = 128):
+    def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
         
