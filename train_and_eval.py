@@ -67,7 +67,8 @@ def getRegularizationLoss(model, opt):
 
     eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
 
-    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / torch.norm(eps, dim=1)).mean()
+    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / \
+            torch.max(torch.norm(eps, dim=1), torch.tensor(1e-6).to(opt.device))).mean()
 
     return loss
 
@@ -128,7 +129,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_reg_loss = getRegularizationLoss(model, opt).float()
+            gps_reg_loss = 1/512 * getRegularizationLoss(model, opt).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
