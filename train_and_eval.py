@@ -51,6 +51,26 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
+def getRandomCoords(n, opt):
+    # Generate N random coordinates sampled from a unit sphere
+
+    # Generate n random 3D coordinates 
+    x = torch.rand((n, 3))
+    # Normalize to unit sphere
+    x = F.normalize(x, dim=1)
+    return x
+
+def getRegularizationLoss(model, opt):
+    # Get the regularization loss for the model
+    coords = getRandomCoords(opt.regularization_samples, opt)
+    coords = coords.to(opt.device)
+
+    eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
+
+    loss = (torch.norm((model.location_encoder(coords) - model.location_encoder(coords + eps))) / torch.norm(eps))
+
+    return loss
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -108,13 +128,14 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
+            gps_reg_loss = getRegularizationLoss(model, opt).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                loss = (img_loss + gps_loss) / 2 + gps_reg_loss
                 
         if opt.traintype == 'Classification':
             
@@ -147,6 +168,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
+                wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
