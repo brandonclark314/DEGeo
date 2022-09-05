@@ -67,7 +67,7 @@ def getRegularizationLoss(model, opt):
 
     eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
 
-    loss = (torch.norm((model.location_encoder(coords) - model.location_encoder(coords + eps))) / torch.norm(eps))
+    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / torch.norm(eps, dim=1)).mean()
 
     return loss
 
