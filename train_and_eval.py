@@ -68,11 +68,11 @@ def getRegularizationLoss(model, opt):
     coords2 = coords + eps
 
     # 2500k, 750k, 200k, 25k, 1k
-    loss = getEncoderRegularizationLoss(model.LocEnc1k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.LocEnc25k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.LocEnc200k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.LocEnc750k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.LocEnc2500k.capsule, coords, coords2, eps, opt)
+    loss = getEncoderRegularizationLoss(model.location_encoder.LocEnc1k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.location_encoder.LocEnc25k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.location_encoder.LocEnc200k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.location_encoder.LocEnc750k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.location_encoder.LocEnc2500k.capsule, coords, coords2, eps, opt)
     
     loss /= 5
 
