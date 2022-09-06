@@ -57,7 +57,7 @@ def getRandomLatLon(n, opt):
     return torch.cat((lat, lon), dim=1)
 
 def getEncoderRegularizationLoss(capsule, coords, coords2, eps, opt):
-    loss = (1 / 1024) * (torch.norm(capsule(coords) - capsule(coords2), dim=1) / torch.norm(eps, dim=1)).mean()
+    loss = (torch.norm(capsule(coords) - capsule(coords2), dim=1) / torch.norm(eps, dim=1)).mean()
     return loss
 
 def getRegularizationLoss(model, opt):
@@ -142,7 +142,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2 + gps_reg_loss
+                loss = (img_loss + gps_loss) / 2 + 1e-6 * gps_reg_loss
                 
         if opt.traintype == 'Classification':
             
