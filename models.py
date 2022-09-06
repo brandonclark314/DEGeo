@@ -28,19 +28,40 @@ def getLocationEncoder(km):
                          nn.Linear(1024, 1024),
                          nn.ReLU(),
                          nn.Linear(1024, 512))
+
+class LocationEncoderCapsule(nn.Module):
+    def __init__(self, km):
+        super(LocationEncoderCapsule, self).__init__()
+        Earth_Diameter = 12742
+        sigma = Earth_Diameter / (3 * km)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
+        self.km = km
+
+        self.capsule = nn.Sequential(rff_encoding,
+                                     nn.Linear(512, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU())
+
+        self.head = nn.Sequential(nn.Linear(1024, 512))
+
+    def forward(self, x):
+        x = self.capsule(x)
+        x = self.head(x)
+        return x
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
 
-        self.queue = []
-
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
-        self.LocEnc25k = getLocationEncoder(25)
-        self.LocEnc1k = getLocationEncoder(1)
+        self.LocEnc2500k = LocationEncoderCapsule(km=2500)
+        self.LocEnc750k = LocationEncoderCapsule(km=750)
+        self.LocEnc200k = LocationEncoderCapsule(km=200)
+        self.LocEnc25k = LocationEncoderCapsule(km=25)
+        self.LocEnc1k = LocationEncoderCapsule(km=1)
         
     def forward(self, location):
         location = location.float()

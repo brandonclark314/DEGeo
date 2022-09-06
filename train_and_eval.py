@@ -233,8 +233,9 @@ def eval_images(val_dataloader, model, epoch, opt):
         locations = [toCartesian(x[0], x[1]) for x in locations]
         locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
     
-    locations = torch.tensor(locations)
-    locations = locations.to(opt.device)
+    locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
+    # locations = torch.tensor(locations)
+    # locations = locations.to(opt.device)
 
     preds = []
     targets = []
