@@ -50,18 +50,15 @@ def toLatLon(x, y, z):
     
     return [lat, lon]
 
-def getRandomCoords(n, opt):
-    # Generate N random coordinates sampled from a unit sphere
-
-    # Generate n random 3D coordinates 
-    x = torch.rand((n, 3))
-    # Normalize to unit sphere
-    x = F.normalize(x, dim=1)
-    return x
+def getRandomLatLon(n, opt):
+    # Generate n random coordinates
+    lat = torch.rand((n, 1)) * 180 - 90
+    lon = torch.rand((n, 1)) * 360 - 180
+    return torch.cat((lat, lon), dim=1)
 
 def getRegularizationLoss(model, opt):
     # Get the regularization loss for the model
-    coords = getRandomCoords(opt.regularization_samples, opt)
+    coords = getRandomLatLon(opt.regularization_samples, opt)
     coords = coords.to(opt.device)
 
     eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
@@ -166,8 +163,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
-                # wandb.log({"GPS Loss": gps_loss.item()})
-                # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
+                wandb.log({"GPS Loss": gps_loss.item()})
+                wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -225,7 +222,6 @@ def eval_images(val_dataloader, model, epoch, opt):
     if opt.partition == 'fine':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-        locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
         # locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)

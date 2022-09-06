@@ -16,13 +16,13 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (256) LatLon.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (32) LatLon Reg Last.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x 100 768Dim.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K SGD (256) LatLon'
+    opt.description = 'GeoCLIP100K SGD (32) LatLon Reg Last'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False
@@ -34,8 +34,8 @@ def getopt():
     opt.step_size = 3
     opt.partition = 'fine'
 
-    opt.regularization_samples = 100
-    opt.batch_size = 256
+    opt.regularization_samples = 32
+    opt.batch_size = 32
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'
