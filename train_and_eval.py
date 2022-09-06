@@ -56,14 +56,25 @@ def getRandomLatLon(n, opt):
     lon = torch.rand((n, 1)) * 360 - 180
     return torch.cat((lat, lon), dim=1)
 
+def getEncoderRegularizationLoss(capsule, coords, coords2, eps, opt):
+    loss = (1 / 1024) * (torch.norm(capsule(coords) - capsule(coords2), dim=1) / torch.norm(eps, dim=1)).mean()
+    return loss
+
 def getRegularizationLoss(model, opt):
     # Get the regularization loss for the model
     coords = getRandomLatLon(opt.regularization_samples, opt)
     coords = coords.to(opt.device)
-
     eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
+    coords2 = coords + eps
 
-    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / torch.norm(eps, dim=1), torch.tensor(1e-6).to(opt.device)).mean()
+    # 2500k, 750k, 200k, 25k, 1k
+    loss = getEncoderRegularizationLoss(model.LocEnc1k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.LocEnc25k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.LocEnc200k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.LocEnc750k.capsule, coords, coords2, eps, opt) + \
+           getEncoderRegularizationLoss(model.LocEnc2500k.capsule, coords, coords2, eps, opt)
+    
+    loss /= 5
 
     return loss
 
