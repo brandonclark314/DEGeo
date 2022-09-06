@@ -29,7 +29,6 @@ import dataloader
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
-# Numpy version of the function
 def toCartesian(latitude, longitude):
     lat = latitude * np.pi / 180
     lon = longitude * np.pi / 180
@@ -67,8 +66,7 @@ def getRegularizationLoss(model, opt):
 
     eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
 
-    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / \
-            torch.max(torch.norm(eps, dim=1), torch.tensor(1e-6).to(opt.device))).mean()
+    loss = (torch.norm(model.location_encoder(coords) - model.location_encoder(coords + eps), dim=1) / torch.norm(eps, dim=1), torch.tensor(1e-6).to(opt.device))).mean()
 
     return loss
 
@@ -129,14 +127,14 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_reg_loss = 1/512 * getRegularizationLoss(model, opt).float()
+            # gps_reg_loss = 1/512 * getRegularizationLoss(model, opt).float()
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2 + gps_reg_loss
+                loss = (img_loss + gps_loss) / 2
                 
         if opt.traintype == 'Classification':
             
@@ -168,8 +166,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
-                wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
+                # wandb.log({"GPS Loss": gps_loss.item()})
+                # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -227,7 +225,8 @@ def eval_images(val_dataloader, model, epoch, opt):
     if opt.partition == 'fine':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-        locations = [toCartesian(x[0], x[1]) for x in locations]
+        locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
+        # locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
     elif opt.partition == '26K':
