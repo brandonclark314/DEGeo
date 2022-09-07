@@ -176,7 +176,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
+                # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
