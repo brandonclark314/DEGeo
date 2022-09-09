@@ -218,7 +218,8 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
 
     # Plot heatmap
     if dis == 1:
-        plot_heatmap(torch.from_numpy(ground_truth), torch.tensor(predictions), opt)
+        print(type(ground_truth), type(predictions), flush=True)
+        plot_heatmap(ground_truth, torch.tensor(predictions), opt)
 
     total = len(ground_truth)
     correct = 0
