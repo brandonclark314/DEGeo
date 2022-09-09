@@ -205,7 +205,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
     elif opt.partition == '3K':
         predictions = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False) 
-        predictions = [predictions[i] for i in preds]
+        predictions = [(predictions[i][0], predictions[i][1])  for i in preds]
     elif opt.partition == '26K':
         predictions = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=False) 
         predictions = [predictions[i] for i in preds]
@@ -219,7 +219,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     # Plot heatmap
     if dis == 1:
         print(type(ground_truth[0]), type(predictions[0]), flush=True)
-        plot_heatmap(ground_truth, torch.tensor(predictions), opt)
+        plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
 
     total = len(ground_truth)
     correct = 0
