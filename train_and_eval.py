@@ -26,6 +26,7 @@ import json
 import models
 from config import getopt
 import dataloader
+from heatmap import plot_heatmap
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
@@ -214,6 +215,10 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         predictions = [locations[i] for i in preds]
     
     ground_truth = [(x[0], x[1]) for x in targets]   
+
+    # Plot heatmap
+    if dis == 1:
+        plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
 
     total = len(ground_truth)
     correct = 0

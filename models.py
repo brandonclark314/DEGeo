@@ -37,7 +37,7 @@ class LocationEncoderCapsule(nn.Module):
         rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
         self.km = km
 
-        self.capsule = nn.Sequential(nn.Linear(2, 512),
+        self.capsule = nn.Sequential(rff_encoding,
                                      nn.Linear(512, 1024),
                                      nn.ReLU(),
                                      nn.Linear(1024, 1024),
