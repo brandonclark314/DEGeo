@@ -78,8 +78,8 @@ def plot_heatmap(ground_truth, predictions, opt=None, wandb_log=True):
 
     # Log to wandb
     if wandb_log:
-        wandb.log({"Error Map": wandb.Image(img_final)})
-        wandb.log({"Density Map": wandb.Image(img_final)})
+        wandb.log({"Error Map": wandb.Image(img_heatmap)})
+        wandb.log({"Density Map": wandb.Image(img_density)})
 
     return img_heatmap, img_density
 
