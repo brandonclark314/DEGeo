@@ -67,8 +67,8 @@ def plot_heatmap(ground_truth, predictions, opt=None, wandb_log=True):
         x = coord[0].int() + 90
         y = coord[1].int() + 180
 
-        img_heatmap[x][y] = torch.tensor(cm(coords_average_error[x][y].item())[:3])
-        img_density[x][y] = torch.tensor(cm(coords_bucket[x][y].item())[:3])
+        img_heatmap[180 - (x + 1)][y] = torch.tensor(cm(coords_average_error[x][y].item())[:3])
+        img_density[180 - (x + 1)][y] = torch.tensor(cm(coords_bucket[x][y].item())[:3])
     
     # Format the images
     img_heatmap = img_heatmap.permute(2, 0, 1) 
