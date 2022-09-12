@@ -242,7 +242,7 @@ def eval_images(val_dataloader, model, epoch, opt):
     if opt.partition == 'fine':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-        # locations = [toCartesian(x[0], x[1]) for x in locations]
+        locations = [toCartesian(x[0], x[1]) for x in locations]
     elif opt.partition == '3K':
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
     elif opt.partition == '26K':
