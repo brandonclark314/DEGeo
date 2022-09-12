@@ -114,7 +114,7 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
             
             latitude = float(row[1]['LAT'])
             longitude = float(row[1]['LON'])
-            #print(row[1]['LAT'])
+            # print(row[1]['LAT'])
 
             scenes.append([row[1]['S3_Label'], row[1]['S16_Label'], row[1]['S365_Label']])
 

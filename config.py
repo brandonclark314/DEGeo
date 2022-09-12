@@ -16,15 +16,15 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (256) LatLon Map.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (256) Map_7_0.99.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x 100 768Dim.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K SGD (256) LatLon Map'
+    opt.description = 'GeoCLIP100K SGD (256) LatLon Map 26K'
     opt.archname = 'CLIP'
-    opt.evaluate = False
+    opt.evaluate = True
     opt.scene = False
     opt.hier_eval = False
 
@@ -38,7 +38,7 @@ def getopt():
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'im2gps3k'
+    opt.testset = 'yfcc26k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
