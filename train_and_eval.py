@@ -26,7 +26,7 @@ import json
 import models
 from config import getopt
 import dataloader
-from heatmap import plot_heatmap
+from heatmap import plot_heatmap, plot_accuracy_heatmap
 
 discretize = np.vectorize(lambda x, alpha: 1 if x > alpha else -1)
 
@@ -200,7 +200,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
     if trainset == 'train1M':
         coarse_gps = pd.read_csv(opt.resources + "cells_50_5000_images_1M.csv")
-
     if opt.partition == 'fine':
         predictions = list(fine_gps.iloc[preds][['latitude_mean', 'longitude_mean']].to_records(index=False))
         predictions = [prediction.tolist() for prediction in predictions]
@@ -222,6 +221,7 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
         print("List: ", type(ground_truth), type(predictions), flush=True)
         print("Item: ", type(ground_truth[0]), type(predictions[0]), flush=True)
         plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
+        plot_accuracy_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt.distances, opt=opt)
 
     total = len(ground_truth)
     correct = 0
