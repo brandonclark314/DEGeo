@@ -100,6 +100,7 @@ class GeoCLIP(nn.Module):
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
+        self.gps_linear = nn.Linear(512, 3)
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(dim, 3)
@@ -120,15 +121,18 @@ class GeoCLIP(nn.Module):
         
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
-        
+
+        # Predict GPS
+        gps_regression = self.gps_linear(location_features)
+        gps_regression = F.normalize(gps_regression, dim=1)
+
         scene_preds = None
-            
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds
+        return logits_per_image, logits_per_location, scene_preds, gps_regression
 
 class ViT(nn.Module):
     def __init__(self):
