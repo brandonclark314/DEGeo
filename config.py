@@ -16,7 +16,7 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (32) GPS-MSE 26K.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K SGD (32) (5x) GPS-MSE 26K.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (32) x 100 768Dim.pth"
 
     opt.size = 224
