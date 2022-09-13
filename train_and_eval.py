@@ -136,7 +136,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_reg_loss = nn.MSELoss()(gps_pred, gps.float()).float()
+            gps_reg_loss = nn.MSELoss()(gps_pred, gps).float()
             # gps_reg_loss = getRegularizationLoss(model, opt).float()
         
             if opt.scene:

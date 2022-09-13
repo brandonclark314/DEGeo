@@ -36,9 +36,8 @@ class LocationEncoderCapsule(nn.Module):
         sigma = Earth_Diameter / (3 * km)
         rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
         self.km = km
-        # rff_encoding
 
-        self.capsule = nn.Sequential(nn.Linear(3, 512),
+        self.capsule = nn.Sequential(rff_encoding,
                                      nn.Linear(512, 1024),
                                      nn.ReLU(),
                                      nn.Linear(1024, 1024),
