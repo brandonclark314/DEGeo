@@ -123,7 +123,7 @@ class GeoCLIP(nn.Module):
         logits_per_location = logits_per_image.t()
 
         # Predict GPS
-        gps_regression = self.gps_linear(location_features)
+        gps_regression = self.gps_linear(image_features)
         gps_regression = F.normalize(gps_regression, dim=1)
 
         scene_preds = None
