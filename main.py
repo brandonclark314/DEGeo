@@ -45,7 +45,13 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_s
 img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
 
-model = models.GeoCLIP(opt=opt)
+# Get Locations
+fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
+locations = [toCartesian(x[0], x[1]) for x in locations]
+locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
+
+model = models.GeoCLIP(opt=opt, gps_regularization_coords = locations)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
