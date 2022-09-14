@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 import torch
 import torch.nn as nn
+import pandas as pd
 
 import dataloader
 from train_and_eval import train_images, eval_images
