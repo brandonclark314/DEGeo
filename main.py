@@ -47,6 +47,14 @@ img_criterion = torch.nn.CrossEntropyLoss()
 scene_criterion = torch.nn.CrossEntropyLoss()
 
 # Get Locations
+def toCartesian(latitude, longitude):
+    lat = latitude * np.pi / 180
+    lon = longitude * np.pi / 180
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+    return x, y, z
+    
 fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
 locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
 locations = [toCartesian(x[0], x[1]) for x in locations]
