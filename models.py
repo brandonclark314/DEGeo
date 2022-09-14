@@ -127,7 +127,7 @@ class GeoCLIP(nn.Module):
         # Regularization
         location_features_reg = self.location_encoder(self.gps_regularization_coords)
         location_features_reg = F.normalize(location_features_reg, dim=1)
-        logits_per_location_reg = logit_scale_reg * (self.gps_regularization_coords @ self.gps_regularization_coords.t())
+        logits_per_location_reg = self.logit_scale_reg * (self.gps_regularization_coords @ self.gps_regularization_coords.t())
 
         # Predict GPS
         # gps_regression = self.gps_linear(image_features)
