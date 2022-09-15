@@ -79,6 +79,13 @@ def getRegularizationLoss(model, opt):
 
     return loss
 
+def augmentGPS(coords, opt):
+    # Augment the GPS coordinates
+    eps = (torch.randn_like(coords) * 5e-5).to(opt.device)
+    coords = coords + eps
+    coords = F.normalize(coords, dim=1)
+    return coords
+
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
     accuracy_regressor, accuracy_classifier = [], []
@@ -123,7 +130,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_reg_matrix = model(imgs, gps, train=True)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
+            gps_reg_matrix1, gps_reg_matrix2 = model.forward_gps(model.gps_regularization_coords, augmentGPS(model.gps_regularization_coords, opt))
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
             targets_reg = torch.arange(gps_reg_matrix.shape[0], dtype=torch.long, device=opt.device)
             
@@ -137,7 +145,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
+            gps_reg_loss = (img_criterion(gps_reg_matrix1, targets_reg).float() + img_criterion(gps_reg_matrix2, targets_reg).float()) / 2
+            # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
             # gps_reg_loss = nn.MSELoss()(gps_pred, gps.float()).float()
             # gps_reg_loss = getRegularizationLoss(model, opt).float()
         

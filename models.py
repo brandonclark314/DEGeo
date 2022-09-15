@@ -98,7 +98,7 @@ class GeoCLIP(nn.Module):
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_reg = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+        self.logit_scale_gps = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
@@ -108,9 +108,26 @@ class GeoCLIP(nn.Module):
             self.scene_predictor3 = nn.Linear(dim, 3)
             self.scene_predictor16 = nn.Linear(dim, 16)
             self.scene_predictor365 = nn.Linear(dim, 365)
+
+    def forward_gps(self, location1, location2):
+        # Compute features
+        location1_features = self.location_encoder(location1)
+        location2_features = self.location_encoder(location2)
+
+        # Normalize features
+        location1_features = F.normalize(location1, dim=1)
+        location2_features = F.normalize(location2, dim=1)
+
+        # Cosine similarity as logits
+        logit_scale = self.logit_scale_gps.exp()
+        
+        logits_per_location1 = logit_scale * (location1_features @ location2_features.t())
+        logits_per_location2 = logits_per_location1.t()
+
+        return logits_per_location1, logits_per_location2
                                              
     def forward(self, image, location, train=False):
-        # Compute Features
+        # Compute features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
         
@@ -125,9 +142,9 @@ class GeoCLIP(nn.Module):
         logits_per_location = logits_per_image.t()
 
         # Regularization
-        location_features_reg = self.location_encoder(self.gps_regularization_coords)
-        location_features_reg = F.normalize(location_features_reg, dim=1)
-        logits_per_location_reg = self.logit_scale_reg * (self.gps_regularization_coords @ self.gps_regularization_coords.t())
+        # location_features_reg = self.location_encoder(self.gps_regularization_coords)
+        # location_features_reg = F.normalize(location_features_reg, dim=1)
+        # logits_per_location_reg = self.logit_scale_reg * (self.gps_regularization_coords @ self.gps_regularization_coords.t())
 
         # Predict GPS
         # gps_regression = self.gps_linear(image_features)
@@ -139,7 +156,8 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_location_reg
+        return logits_per_image, logits_per_location, scene_preds
+        #, logits_per_location_reg
 
 class ViT(nn.Module):
     def __init__(self):
