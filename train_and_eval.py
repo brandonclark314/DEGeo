@@ -133,7 +133,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
             gps_reg_matrix1, gps_reg_matrix2 = model.forward_gps(model.gps_regularization_coords, augmentGPS(model.gps_regularization_coords, opt))
             targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-            targets_reg = torch.arange(gps_reg_matrix.shape[0], dtype=torch.long, device=opt.device)
+            targets_reg = torch.arange(gps_reg_matrix1.shape[0], dtype=torch.long, device=opt.device)
             
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
