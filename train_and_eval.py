@@ -81,7 +81,7 @@ def getRegularizationLoss(model, opt):
 
 def augmentGPS(coords, opt):
     # Augment the GPS coordinates
-    eps = (torch.randn_like(coords) * 5e-5).to(opt.device)
+    eps = (torch.randn_like(coords) * 5e-4).to(opt.device)
     coords = coords + eps
     coords = F.normalize(coords, dim=1)
     return coords

@@ -45,7 +45,7 @@ class LocationEncoderCapsule(nn.Module):
                                      nn.Linear(1024, 1024),
                                      nn.ReLU())
 
-        self.head = nn.Sequential(nn.Linear(1024, 512))
+        self.head = nn.Sequential(nn.Linear(1024, 768))
 
     def forward(self, x):
         x = self.capsule(x)
@@ -81,7 +81,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 512))
+        self.mlp = nn.Sequential(nn.Linear(768, 768))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -90,7 +90,7 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self, gps_regularization_coords, input_resolution=224, opt=None, dim = 512):
+    def __init__(self, gps_regularization_coords, input_resolution=224, opt=None, dim = 768):
         super().__init__()
         self.opt = opt
 
