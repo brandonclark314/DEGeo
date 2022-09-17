@@ -236,7 +236,7 @@ class M16Dataset(Dataset):
             self.medium2fine[929] = 0
             self.medium2fine[3050] = 0
         
-        print(fnames[0])
+        # print(fnames[0])
 
         temp = list(zip(fnames, classes, scenes))
         np.random.shuffle(temp)
