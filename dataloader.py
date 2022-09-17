@@ -75,8 +75,6 @@ def get_mp16_train(classfile="mp16_places365.csv", opt=None, cartesian_coords=Tr
 
     for row in tqdm(class_info.iterrows()):
         filename = base_folder + row[1]['IMG_ID']
-        print(filename)
-        exit()
         if exists(filename):
             fnames.append(filename)
             
