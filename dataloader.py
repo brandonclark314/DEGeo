@@ -75,6 +75,8 @@ def get_mp16_train(classfile="mp16_places365.csv", opt=None, cartesian_coords=Tr
 
     for row in tqdm(class_info.iterrows()):
         filename = base_folder + row[1]['IMG_ID']
+        print(filename)
+        exit()
         if exists(filename):
             fnames.append(filename)
             
@@ -258,7 +260,7 @@ class M16Dataset(Dataset):
         img = self.transform(img)
 
 
-        #print(self.classes[idx])
+        print(self.classes[idx])
         if self.split in ['train', 'train1M', 'trainbdd'] :
             return img, torch.Tensor(self.classes[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
         else:
