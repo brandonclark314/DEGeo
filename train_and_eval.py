@@ -57,28 +57,6 @@ def getRandomLatLon(n, opt):
     lon = torch.rand((n, 1)) * 360 - 180
     return torch.cat((lat, lon), dim=1)
 
-def getEncoderRegularizationLoss(capsule, coords, coords2, eps, opt):
-    loss = (torch.norm(capsule(coords) - capsule(coords2), dim=1) / torch.norm(eps, dim=1)).mean()
-    return loss
-
-def getRegularizationLoss(model, opt):
-    # Get the regularization loss for the model
-    coords = getRandomLatLon(opt.regularization_samples, opt)
-    coords = coords.to(opt.device)
-    eps = (torch.randn_like(coords) * 1e-4).to(opt.device)
-    coords2 = coords + eps
-
-    # 2500k, 750k, 200k, 25k, 1k
-    loss = getEncoderRegularizationLoss(model.location_encoder.LocEnc1k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.location_encoder.LocEnc25k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.location_encoder.LocEnc200k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.location_encoder.LocEnc750k.capsule, coords, coords2, eps, opt) + \
-           getEncoderRegularizationLoss(model.location_encoder.LocEnc2500k.capsule, coords, coords2, eps, opt)
-    
-    loss /= 5
-
-    return loss
-
 def augmentGPS(coords, opt):
     # Augment the GPS coordinates
     eps = torch.randn_like(coords)
@@ -132,9 +110,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
-            gps_reg_matrix1, gps_reg_matrix2 = model.forward_gps(model.gps_regularization_coords, augmentGPS(model.gps_regularization_coords, opt))
-            targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
-            targets_reg = torch.arange(gps_reg_matrix1.shape[0], dtype=torch.long, device=opt.device)
+            targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
             
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
@@ -146,7 +122,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             img_loss = img_criterion(img_matrix, targets).float()
             gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_reg_loss = (img_criterion(gps_reg_matrix1, targets_reg).float() + img_criterion(gps_reg_matrix2, targets_reg).float()) / 2
             # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
             # gps_reg_loss = nn.MSELoss()(gps_pred, gps.float()).float()
             # gps_reg_loss = getRegularizationLoss(model, opt).float()
@@ -156,7 +131,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss + gps_reg_loss) / 3
+                loss = (img_loss + gps_loss) / 2
                 # + 5 * gps_reg_loss
                 # + 1e-4 * gps_reg_loss
                 
@@ -191,7 +166,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Regulatization Q. Loss": gps_reg_loss.item()})
+                # wandb.log({"GPS Regulatization Q. Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Reg. Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Pred. Arc": torch.mean().item()})

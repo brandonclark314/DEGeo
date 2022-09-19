@@ -29,6 +29,15 @@ def getLocationEncoder(km):
                          nn.ReLU(),
                          nn.Linear(1024, 512))
 
+def augmentGPS(coords, opt):
+    # Augment the GPS coordinates
+    coords = coords.detach()
+    eps = torch.randn_like(coords)
+    eps = (F.normalize(eps, dim=1) * 5e-3).to(opt.device)
+    coords = coords + eps
+    coords = F.normalize(coords, dim=1)
+    return coords
+
 class LocationEncoderCapsule(nn.Module):
     def __init__(self, km):
         super(LocationEncoderCapsule, self).__init__()
@@ -90,74 +99,85 @@ class ImageEncoder(nn.Module):
         return image_features
         
 class GeoCLIP(nn.Module):
-    def __init__(self, gps_regularization_coords, input_resolution=224, opt=None, dim = 512):
+    def __init__(self,  input_resolution=224, opt=None, dim = 512):
         super().__init__()
         self.opt = opt
-
-        self.gps_regularization_coords = gps_regularization_coords
+        self.K = opt.queue_size
         
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        self.logit_scale_gps = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
-        # self.gps_linear = nn.Linear(512, 3)
+        
+        # Create GPS queue
+        self.register_buffer("gps_queue", torch.randn(3, self.K))
+        self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
+        self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
         
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(dim, 3)
             self.scene_predictor16 = nn.Linear(dim, 16)
             self.scene_predictor365 = nn.Linear(dim, 365)
+            
+    @torch.no_grad()
+    def _dequeue_and_enqueue(self, gps):
+        opt = self.opt
+        gps_batch_size = gps.shape[0]
+        batch_size = opt.batch_size
 
-    def forward_gps(self, location1, location2):
-        # Compute features
-        location1_features = self.location_encoder(location1)
-        location2_features = self.location_encoder(location2)
-
-        # Normalize features
-        location1_features = F.normalize(location1, dim=1)
-        location2_features = F.normalize(location2, dim=1)
-
-        # Cosine similarity as logits
-        logit_scale = self.logit_scale_gps.exp()
+        gps_ptr = int(self.gps_queue_ptr)
         
-        logits_per_location1 = logit_scale * (location1_features @ location2_features.t())
-        logits_per_location2 = logits_per_location1.t()
+        assert self.K % batch_size == 0  # for simplicity
 
-        return logits_per_location1, logits_per_location2
+        # replace the keys at ptr (dequeue and enqueue)
+        self.gps_queue[:, gps_ptr:gps_ptr + gps_batch_size] = gps.t()
+        gps_ptr = (gps_ptr + batch_size) % self.K  # move pointer
+        self.gps_queue_ptr[0] = gps_ptr
                                              
     def forward(self, image, location, train=False):
-        # Compute features
+        # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
+
+        logit_scale = self.logit_scale.exp()
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
-        
-        # Cosine similarity as logits (Image Features - Location Features)
-        logit_scale = self.logit_scale.exp()
-        
-        logits_per_image = logit_scale * (image_features @ location_features.t())
-        logits_per_location = logits_per_image.t()
-
-        # Regularization
-        # location_features_reg = self.location_encoder(self.gps_regularization_coords)
-        # location_features_reg = F.normalize(location_features_reg, dim=1)
-        # logits_per_location_reg = self.logit_scale_reg * (self.gps_regularization_coords @ self.gps_regularization_coords.t())
-
-        # Predict GPS
-        # gps_regression = self.gps_linear(image_features)
-        # gps_regression = F.normalize(gps_regression, dim=1)
 
         scene_preds = None
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
+        
+        if train:
+            # Get the queues
+            location_queue = self.gps_queue.t().detach()
+            location_queue_augmented = augmentGPS(location_queue, self.opt)
+
+            # Get the queue features
+            location_queue_features = self.location_encoder(location_queue)
+            location_queue_augmented_features = self.location_encoder(location_queue_augmented)
+
+            # Normalize the queue features
+            location_queue_features = F.normalize(location_queue_features, dim=1)
+            location_queue_augmented_features = F.normalize(location_queue_augmented_features, dim=1)
+            
+            # Concatenate Positive + Negatives
+            location_features = torch.cat([location_features, location_queue_features], dim=0)
+            image_features = torch.cat([image_features, location_queue_augmented_features], dim=0)
+
+            # Add Encodings to Queue
+            self._dequeue_and_enqueue(location)
+
+        # Cosine similarity (Image Features - Location Feature Queue)
+        logits_per_image = logit_scale * (image_features @ location_features.t())
+        logits_per_location = logits_per_image.t()
 
         return logits_per_image, logits_per_location, scene_preds
-        #, logits_per_location_reg
+
 
 class ViT(nn.Module):
     def __init__(self):
@@ -275,25 +295,6 @@ if __name__ == "__main__":
     torch.set_printoptions(edgeitems=30)
     
     plot_feature_map(model)
-
-    # Compute the loss
-    # loss = 0
-    # img_loss = criterion(image_features_momentum, targets).float()
-    # gps_loss = criterion(location_features_momentum, targets).float()
-
-    # loss = (img_loss + gps_loss) / 2
-    
-    # print(img_loss)
-    # print(gps_loss)
-    # print(loss)
-
-    # print(loss)
-    
-    # plt.figure(figsize=(10,10))
-    # plt.imshow(image_features_momentum, cmap='viridis', interpolation='none')
-    # print(location_features_momentum.shape)
-    # plt.colorbar()
-    # plt.show()
     
 
     
