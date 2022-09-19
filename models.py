@@ -159,7 +159,7 @@ class GeoCLIP(nn.Module):
         if train:
             # Get the queues
             location_queue = self.gps_queue.t().detach()
-            location_queue_augmented = augmentGPS(location_queue)
+            location_queue_augmented = augmentGPS(location_queue, self.opt)
 
             # Get the queue features
             location_queue_features = self.location_encoder(location_queue)
