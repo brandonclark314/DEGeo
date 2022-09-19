@@ -16,41 +16,59 @@ from config import getopt
 from infonce import InfoNCE
 from coordinates import toCartesian, toLatLon
 
-def getLocationEncoder(km):
-    Earth_Diameter = 12742
-    sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
-    return nn.Sequential(rff_encoding,
-                         nn.Linear(512, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 1024),
-                         nn.ReLU(),
-                         nn.Linear(1024, 128))
+def augmentGPS(coords, opt):
+    # Augment the GPS coordinates
+    coords = coords.detach()
+    eps = torch.randn_like(coords)
+    eps = (F.normalize(eps, dim=1) * 5e-3).to(opt.device)
+    coords = coords + eps
+    coords = F.normalize(coords, dim=1)
+    return coords
+
+class LocationEncoderCapsule(nn.Module):
+    def __init__(self, km):
+        super(LocationEncoderCapsule, self).__init__()
+        Earth_Diameter = 12742
+        sigma = Earth_Diameter / (3 * km)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+        self.km = km
+
+        self.capsule = nn.Sequential(rff_encoding,
+                                     nn.Linear(512, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU())
+
+        self.head = nn.Sequential(nn.Linear(1024, 512))
+
+    def forward(self, x):
+        x = self.capsule(x)
+        x = self.head(x)
+        return x
 
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
         super().__init__()
         self.opt = opt
 
-        self.queue = []
-
-        self.LocEnc2500k = getLocationEncoder(2500)
-        self.LocEnc750k = getLocationEncoder(750)
-        self.LocEnc200k = getLocationEncoder(200)
-        self.LocEnc25k = getLocationEncoder(25)
-        # self.LocEnc1k = getLocationEncoder(1)
+        self.LocEnc2500k = LocationEncoderCapsule(km=2500)
+        self.LocEnc750k = LocationEncoderCapsule(km=750)
+        self.LocEnc200k = LocationEncoderCapsule(km=200)
+        self.LocEnc25k = LocationEncoderCapsule(km=25)
+        self.LocEnc1k = LocationEncoderCapsule(km=1)
         
     def forward(self, location):
         location = location.float()
+        # location = location / 180
         L2500k = self.LocEnc2500k(location)
         L750k = self.LocEnc750k(location)
         L200k = self.LocEnc200k(location)
         L25k = self.LocEnc25k(location)
-        # L1k = self.LocEnc1k(location)
+        L1k = self.LocEnc1k(location)
         
-        location_features = L2500k + L750k + L200k + L25k 
+        location_features = L2500k + L750k + L200k + L25k + L1k
         
         return location_features
     
@@ -59,7 +77,7 @@ class ImageEncoder(nn.Module):
         super().__init__()
         self.opt = opt
         self.image_encoder = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
-        self.mlp = nn.Sequential(nn.Linear(768, 128))
+        self.mlp = nn.Sequential(nn.Linear(768, 512))
         
     def forward(self, image):
         image_features = self.image_encoder(image).last_hidden_state
@@ -79,10 +97,7 @@ class GeoCLIP(nn.Module):
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
         
-        self.momentum_image_encoder = ImageEncoder(opt)
-        self.momentum_location_encoder = LocationEncoder(opt)
-        
-        # create the queues
+        # Create GPS queue
         self.register_buffer("gps_queue", torch.randn(3, self.K))
         self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
         self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
@@ -92,15 +107,10 @@ class GeoCLIP(nn.Module):
             self.scene_predictor16 = nn.Linear(dim, 16)
             self.scene_predictor365 = nn.Linear(dim, 365)
             
-    def _get_gps_queue_features(self):
-        self.gps_queue = self.gps_queue.detach()
-        location_features = self.location_encoder(self.gps_queue.t())
-        return location_features
-            
     @torch.no_grad()
-    def _dequeue_and_enqueue(self, gps_keys):
+    def _dequeue_and_enqueue(self, gps):
         opt = self.opt
-        gps_batch_size = gps_keys.shape[0]
+        gps_batch_size = gps.shape[0]
         batch_size = opt.batch_size
 
         gps_ptr = int(self.gps_queue_ptr)
@@ -108,44 +118,67 @@ class GeoCLIP(nn.Module):
         assert self.K % batch_size == 0  # for simplicity
 
         # replace the keys at ptr (dequeue and enqueue)
-        self.gps_queue[:, gps_ptr:gps_ptr + gps_batch_size] = gps_keys.t()
+        self.gps_queue[:, gps_ptr:gps_ptr + gps_batch_size] = gps.t()
         gps_ptr = (gps_ptr + batch_size) % self.K  # move pointer
         self.gps_queue_ptr[0] = gps_ptr
+
+    def forward_gps(self, location1, location2):
+        # Compute features
+        location1_features = self.location_encoder(location1)
+        location2_features = self.location_encoder(location2)
+
+        # Normalize features
+        location1_features = F.normalize(location1, dim=1)
+        location2_features = F.normalize(location2, dim=1)
+
+        # Cosine similarity as logits
+        logit_scale = self.logit_scale.exp()
+        
+        logits_per_location1 = logit_scale * (location1_features @ location2_features.t())
+        logits_per_location2 = logits_per_location1.t()
+
+        return logits_per_location1, logits_per_location2
                                              
     def forward(self, image, location, train=False):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
-        location_queue_features = self._get_gps_queue_features()
+
         logit_scale = self.logit_scale.exp()
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
         location_features = F.normalize(location_features, dim=1)
-        
-        # Cosine similarity as logits (Image Features - Location Features)
-        logits_per_image = logit_scale * (image_features @ location_features.t())
-        logits_per_location = logits_per_image.t()
-        
+
         scene_preds = None
-            
         if self.opt.scene:
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
-
+        
         if train:
-            location_queue_features = F.normalize(self._get_gps_queue_features(), dim=1)
+            # Get the queues
+            location_queue = self.gps_queue.t().detach()
+            location_queue_augmented = augmentGPS(location_queue)
 
-            # Get Positive + Negatives
-            location_embeddings = torch.cat([location_features, location_queue_features], dim=0)
+            # Get the queue features
+            location_queue_features = self.location_encoder(location_queue)
+            location_queue_augmented_features = self.location_encoder(location_queue_augmented)
+
+            # Normalize the queue features
+            location_queue_features = F.normalize(location_queue_features, dim=1)
+            location_queue_augmented_features = F.normalize(location_queue_augmented_features, dim=1)
             
-            # Cosine similarity (Image Features - Location Feature Queue)
-            logits_per_image = logit_scale * (image_features @ location_embeddings.t())
-            logits_per_location = logits_per_image.t()
-            
+            # Concatenate Positive + Negatives
+            location_features = torch.cat([location_features, location_queue_features], dim=0)
+            image_features = torch.cat([image_features, location_queue_augmented_features], dim=0)
+
             # Add Encodings to Queue
             self._dequeue_and_enqueue(location)
+
+        # Cosine similarity (Image Features - Location Feature Queue)
+        logits_per_image = logit_scale * (image_features @ location_features.t())
+        logits_per_location = logits_per_image.t()
 
         return logits_per_image, logits_per_location, scene_preds
 
