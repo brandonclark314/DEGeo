@@ -34,6 +34,7 @@ def getopt():
     opt.step_size = 3
     opt.partition = 'fine'
 
+    opt.queue_size = 4096
     opt.regularization_samples = 256
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
