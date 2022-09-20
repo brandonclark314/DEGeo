@@ -33,7 +33,7 @@ def augmentGPS(coords, opt):
     # Augment the GPS coordinates
     coords = coords.detach()
     eps = torch.randn_like(coords)
-    eps = (F.normalize(eps, dim=1) * 5e-3).to(opt.device)
+    eps = (F.normalize(eps, dim=1) * 5e-4).to(opt.device)
     coords = coords + eps
     coords = F.normalize(coords, dim=1)
     return coords
