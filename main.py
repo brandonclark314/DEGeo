@@ -55,12 +55,12 @@ def toCartesian(latitude, longitude):
     z = np.sin(lat)
     return x, y, z
     
-fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
-locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-locations = [toCartesian(x[0], x[1]) for x in locations]
-locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
+# fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
+# locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
+# locations = [toCartesian(x[0], x[1]) for x in locations]
+# locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
 
-model = models.GeoCLIP(opt=opt, gps_regularization_coords = locations)
+model = models.GeoCLIP(opt=opt)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))

@@ -31,7 +31,7 @@ def getopt():
     # opt.lr = 3e-5
     # opt.lr = 5e-4
     opt.lr = 0.01
-    opt.step_size = 5
+    opt.step_size = 3
     opt.partition = 'fine'
 
     opt.regularization_samples = 256
