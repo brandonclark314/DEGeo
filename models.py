@@ -19,7 +19,7 @@ from feature_map import plot_feature_map
 def getLocationEncoder(km):
     Earth_Diameter = 12742
     sigma = Earth_Diameter / (3 * km)
-    rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
+    rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
     return nn.Sequential(rff_encoding,
                          nn.Linear(512, 1024),
                          nn.ReLU(),
