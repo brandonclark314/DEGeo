@@ -66,11 +66,17 @@ class LocationEncoder(nn.Module):
         super().__init__()
         self.opt = opt
 
-        self.LocEnc2500k = LocationEncoderCapsule(km=2500)
-        self.LocEnc750k = LocationEncoderCapsule(km=750)
-        self.LocEnc200k = LocationEncoderCapsule(km=200)
-        self.LocEnc25k = LocationEncoderCapsule(km=25)
-        self.LocEnc1k = LocationEncoderCapsule(km=1)
+        # self.LocEnc2500k = LocationEncoderCapsule(km=2500)
+        # self.LocEnc750k = LocationEncoderCapsule(km=750)
+        # self.LocEnc200k = LocationEncoderCapsule(km=200)
+        # self.LocEnc25k = LocationEncoderCapsule(km=25)
+        # self.LocEnc1k = LocationEncoderCapsule(km=1)
+        
+        self.LocEnc2500k = getLocationEncoder(km=2500)
+        self.LocEnc750k = getLocationEncoder(km=750)
+        self.LocEnc200k = getLocationEncoder(km=200)
+        self.LocEnc25k = getLocationEncoder(km=25)
+        self.LocEnc1k = getLocationEncoder(km=1)
         
     def forward(self, location):
         location = location.float()
@@ -110,31 +116,11 @@ class GeoCLIP(nn.Module):
         self.image_encoder = ImageEncoder(opt)
         self.location_encoder = LocationEncoder(opt)
         
-        # Create GPS queue
-        self.register_buffer("gps_queue", torch.randn(3, self.K))
-        self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
-        self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
-        
         if self.opt.scene:
             self.scene_predictor3 = nn.Linear(dim, 3)
             self.scene_predictor16 = nn.Linear(dim, 16)
             self.scene_predictor365 = nn.Linear(dim, 365)
             
-    @torch.no_grad()
-    def _dequeue_and_enqueue(self, gps):
-        opt = self.opt
-        gps_batch_size = gps.shape[0]
-        batch_size = opt.batch_size
-
-        gps_ptr = int(self.gps_queue_ptr)
-        
-        assert self.K % batch_size == 0  # for simplicity
-
-        # replace the keys at ptr (dequeue and enqueue)
-        self.gps_queue[:, gps_ptr:gps_ptr + gps_batch_size] = gps.t()
-        gps_ptr = (gps_ptr + batch_size) % self.K  # move pointer
-        self.gps_queue_ptr[0] = gps_ptr
-                                             
     def forward(self, image, location, train=False):
         # Compute Features
         image_features = self.image_encoder(image)
@@ -151,36 +137,12 @@ class GeoCLIP(nn.Module):
             scene_preds = [self.scene_predictor3(image_features),
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
-        
-        logits_per_location_self_attention = None
-        if train:
-            # Get the queues
-            location_queue = self.gps_queue.t().detach()
-            location_queue_augmented = augmentGPS(location_queue, self.opt)
-
-            # Get the queue features
-            location_queue_features = self.location_encoder(location_queue)
-            location_queue_augmented_features = self.location_encoder(location_queue_augmented)
-
-            # Normalize the queue features
-            location_queue_features = F.normalize(location_queue_features, dim=1)
-            location_queue_augmented_features = F.normalize(location_queue_augmented_features, dim=1)
-
-            # Compute the logits
-            logits_per_location_self_attention = logit_scale * (location_queue_features @ location_queue_augmented_features.t())
-            
-            # Concatenate Positive + Negatives
-            # location_features = torch.cat([location_features, location_queue_features], dim=0)
-            # image_features = torch.cat([image_features, location_queue_augmented_features], dim=0)
-
-            # Add Encodings to Queue
-            self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_location_self_attention
+        return logits_per_image, logits_per_location, scene_preds
 
 
 class ViT(nn.Module):
