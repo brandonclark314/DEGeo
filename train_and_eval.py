@@ -137,7 +137,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2 + 0.5 * gps_self_loss
+                loss = (img_loss + gps_loss) / 2
                 # + 5 * gps_reg_loss
                 # + 1e-4 * gps_reg_loss
                 
