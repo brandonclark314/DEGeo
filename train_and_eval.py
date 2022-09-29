@@ -109,9 +109,11 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred, gps_self_matrix = model(imgs, gps, train=True)
+            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
             targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
-            targets_self = torch.arange(gps_self_matrix.shape[0], dtype=torch.long, device=opt.device)
+
+            gps = gps.float()
+            gps_weights = F.normalize(torch.mean(torch.cdist(gps, gps), dim=1), dim=-1) * img_matrix.shape[0]
             
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
@@ -121,9 +123,11 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':     
-            img_loss = img_criterion(img_matrix, targets).float()
-            gps_loss = img_criterion(gps_matrix, targets).float()
-            gps_self_loss = img_criterion(gps_self_matrix, targets_self).float()
+            criterion = nn.CrossEntropyLoss(weight=gps_weights)
+            img_loss = criterion(img_matrix, targets).float()
+            gps_loss = criterion(gps_matrix, targets).float()
+
+            # gps_self_loss = img_criterion(gps_self_matrix, targets_self).float()
             # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
             # gps_reg_loss = nn.MSELoss()(gps_pred, gps.float()).float()
             # gps_reg_loss = getRegularizationLoss(model, opt).float()
@@ -168,7 +172,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
                 wandb.log({"GPS Loss": gps_loss.item()})
-                wandb.log({"GPS Self Loss": gps_self_loss.item()})
+                # wandb.log({"GPS Self Loss": gps_self_loss.item()})
                 # wandb.log({"GPS Regulatization Q. Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Reg. Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
@@ -264,7 +268,7 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred, logits_per_location_self_attention = model(imgs, locations)
+                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)
         probs = logits_per_image.softmax(dim=-1)

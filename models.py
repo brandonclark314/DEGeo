@@ -152,35 +152,29 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
         
-        logits_per_location_self_attention = None
-        if train:
-            # Get the queues
-            location_queue = self.gps_queue.t().detach()
-            location_queue_augmented = augmentGPS(location_queue, self.opt)
+        # logits_per_location_self_attention = None
+        # if train:
+        #     # Get the queues
+        #     location_queue = self.gps_queue.t().detach()
 
-            # Get the queue features
-            location_queue_features = self.location_encoder(location_queue)
-            location_queue_augmented_features = self.location_encoder(location_queue_augmented)
+        #     # Get the queue features
+        #     location_queue_features = self.location_encoder(location_queue)
 
-            # Normalize the queue features
-            location_queue_features = F.normalize(location_queue_features, dim=1)
-            location_queue_augmented_features = F.normalize(location_queue_augmented_features, dim=1)
+        #     # Normalize the queue features
+        #     location_queue_features = F.normalize(location_queue_features, dim=1)
+        #     location_queue_augmented_features = F.normalize(location_queue_augmented_features, dim=1)
 
-            # Compute the logits
-            logits_per_location_self_attention = logit_scale * (location_queue_features @ location_queue_augmented_features.t())
-            
-            # Concatenate Positive + Negatives
-            # location_features = torch.cat([location_features, location_queue_features], dim=0)
-            # image_features = torch.cat([image_features, location_queue_augmented_features], dim=0)
+        #     # Compute the logits
+        #     logits_per_location_self_attention = logit_scale * (location_queue_features @ location_queue_augmented_features.t())
 
-            # Add Encodings to Queue
-            self._dequeue_and_enqueue(location)
+        #     # Add Encodings to Queue
+        #     self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
         logits_per_image = logit_scale * (image_features @ location_features.t())
         logits_per_location = logits_per_image.t()
 
-        return logits_per_image, logits_per_location, scene_preds, logits_per_location_self_attention
+        return logits_per_image, logits_per_location, scene_preds
 
 
 class ViT(nn.Module):
