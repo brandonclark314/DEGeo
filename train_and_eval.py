@@ -111,9 +111,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
             targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
-
-            gps = gps.float()
-            gps_weights = F.normalize(torch.mean(torch.cdist(gps, gps), dim=1), dim=-1) * img_matrix.shape[0]
+            # gps = gps.float()
+            # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
         if opt.traintype == 'Classification':
             out1, out2, out3 = model(imgs)
@@ -123,9 +122,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         # Compute the loss
         loss = 0
         if opt.traintype == 'CLIP':     
-            criterion = nn.CrossEntropyLoss(weight=gps_weights)
-            img_loss = criterion(img_matrix, targets).float()
-            gps_loss = criterion(gps_matrix, targets).float()
+            # criterion = nn.CrossEntropyLoss(weight=gps_weights)
+            img_loss = img_criterion(img_matrix, targets).float()
+            gps_loss = img_criterion(gps_matrix, targets).float()
 
             # gps_self_loss = img_criterion(gps_self_matrix, targets_self).float()
             # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()

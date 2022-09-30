@@ -12,6 +12,7 @@ from cell_zoom import cell_zoom
 from gaussian import gaussian_eval
 from loc_enc_eval import loc_enc_eval
 from fibonacci_eval import fibonacci_eval
+from focal_loss import FocalLoss
 
 import wandb
 
@@ -43,7 +44,8 @@ if not opt.evaluate:
 
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-img_criterion = torch.nn.CrossEntropyLoss()
+# img_criterion = torch.nn.CrossEntropyLoss()
+img_criterion = FocalLoss(gamma=5.0)
 scene_criterion = torch.nn.CrossEntropyLoss()
 
 # Get Locations
