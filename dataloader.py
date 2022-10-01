@@ -257,7 +257,7 @@ class M16Dataset(Dataset):
         
         img = self.transform(img)
 
-        if self.split in ['train', 'train1M', 'trainbdd'] :
+        if self.split in ['train', 'train1M', 'trainbdd']:
             return img, torch.Tensor(self.classes[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
         else:
             return img, torch.Tensor(self.classes[idx]).to(torch.float64), torch.Tensor(self.scenes[idx]).to(torch.int64)
