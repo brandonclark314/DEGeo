@@ -102,4 +102,4 @@ for epoch in range(opt.n_epochs):
         loss = round(loss, 2)
         torch.save(model.state_dict(), 'weights/' + opt.description + '_' + str(epoch) + '_' + str(loss) + '.pth')
 
-    scheduler.step()
+    # scheduler.step()
