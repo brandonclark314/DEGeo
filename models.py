@@ -111,7 +111,7 @@ class GeoCLIP(nn.Module):
         self.location_encoder = LocationEncoder(opt)
         
         # Create GPS queue
-        self.register_buffer("gps_queue", torch.randn(3, self.K))
+        self.register_buffer("gps_queue", torch.randn(2, self.K))
         self.gps_queue = nn.functional.normalize(self.gps_queue, dim=0)
         self.register_buffer("gps_queue_ptr", torch.zeros(1, dtype=torch.long))
         
