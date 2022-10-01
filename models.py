@@ -153,7 +153,7 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor365(image_features)]
         
         # logits_per_location_self_attention = None
-        # if train:
+        if train:
             # Get the queues
             location_queue = self.gps_queue.t().detach()
 
@@ -165,7 +165,7 @@ class GeoCLIP(nn.Module):
             location_queue_features = F.normalize(location_queue_features, dim=1)
 
             # Concatenate Features
-            location_queue_features = torch.cat(location_features, location_queue_features, dim=0)
+            location_features = torch.cat(location_features, location_queue_features, dim=0)
 
             # Add Encodings to Queue
             self._dequeue_and_enqueue(location)
