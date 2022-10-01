@@ -165,7 +165,7 @@ class GeoCLIP(nn.Module):
             location_queue_features = F.normalize(location_queue_features, dim=1)
 
             # Concatenate Features
-            location_features = torch.cat(location_features, location_queue_features, dim=0)
+            location_features = torch.cat((location_features, location_queue_features), dim=0)
 
             # Add Encodings to Queue
             self._dequeue_and_enqueue(location)
