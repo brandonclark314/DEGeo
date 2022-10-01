@@ -158,8 +158,7 @@ class GeoCLIP(nn.Module):
             location_queue = self.gps_queue.t().detach()
 
             # Get the queue features
-            with torch.no_grad():
-                location_queue_features = self.location_encoder(location_queue)
+            location_queue_features = self.location_encoder(location_queue)
 
             # Normalize the queue features
             location_queue_features = F.normalize(location_queue_features, dim=1)
