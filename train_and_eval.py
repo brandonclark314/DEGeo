@@ -124,7 +124,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
             img_loss = img_criterion(img_matrix, targets).float()
-            gps_loss = img_criterion(gps_matrix, targets).float()
+
+            # gps_loss = img_criterion(gps_matrix, targets).float()
 
             # gps_self_loss = img_criterion(gps_self_matrix, targets_self).float()
             # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
@@ -136,7 +137,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 
                 loss = (img_loss + gps_loss + scene_loss) / 3
             else:
-                loss = (img_loss + gps_loss) / 2
+                # loss = (img_loss + gps_loss) / 2
+                loss = img_loss
                 # + 5 * gps_reg_loss
                 # + 1e-4 * gps_reg_loss
                 
@@ -170,12 +172,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
-                wandb.log({"GPS Loss": gps_loss.item()})
-                # wandb.log({"GPS Self Loss": gps_self_loss.item()})
-                # wandb.log({"GPS Regulatization Q. Loss": gps_reg_loss.item()})
-                # wandb.log({"GPS Reg. Loss": gps_reg_loss.item()})
-                # wandb.log({"GPS Regularization Loss": gps_reg_loss.item()})
-                # wandb.log({"GPS Pred. Arc": torch.mean().item()})
+                # wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
             if opt.scene:
