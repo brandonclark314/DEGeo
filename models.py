@@ -43,7 +43,7 @@ class LocationEncoderCapsule(nn.Module):
         super(LocationEncoderCapsule, self).__init__()
         Earth_Diameter = 12742
         sigma = Earth_Diameter / (3 * km)
-        rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
         self.km = km
 
         self.capsule = nn.Sequential(rff_encoding,
@@ -74,7 +74,7 @@ class LocationEncoder(nn.Module):
         
     def forward(self, location):
         location = location.float()
-        # location = location / 180
+        location = location / 180
         L2500k = self.LocEnc2500k(location)
         L750k = self.LocEnc750k(location)
         L200k = self.LocEnc200k(location)
