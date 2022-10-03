@@ -43,36 +43,21 @@ class LocationEncoderCapsule(nn.Module):
         super(LocationEncoderCapsule, self).__init__()
         Earth_Diameter = 12742
         sigma = Earth_Diameter / (3 * km)
-        self.rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=30)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=30)
         self.km = km
 
-        self.capsule1 = nn.Sequential(nn.Linear(60, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU())
+        self.capsule = nn.Sequential(rff_encoding,
+                                     nn.Linear(60, 2048),
+                                     nn.ReLU(),
+                                     nn.Linear(2048, 2048),
+                                     nn.ReLU(),
+                                     nn.Linear(2048, 2048),
+                                     nn.ReLU())
 
-        self.capsule2 = nn.Sequential(nn.Linear(1084, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU(),
-                                      nn.Linear(1024, 1024),
-                                      nn.ReLU())
-
-        self.head = nn.Sequential(nn.Linear(1024, 768))
+        self.head = nn.Sequential(nn.Linear(2048, 768))
 
     def forward(self, x):
-        x_rff = self.rff_encoding(x)
-        x = self.capsule1(x_rff)
-        x = torch.cat((x, x_rff), dim=1)
-        x = self.capsule2(x)
+        x = self.capsule(x)
         x = self.head(x)
         return x
     
