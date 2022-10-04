@@ -46,10 +46,11 @@ class LocationEncoderCapsule(nn.Module):
         rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
         self.km = km
 
-        self.capsule = nn.Sequential(rff_encoding,
-                                     nn.Linear(512, 1024),
-                                     nn.ReLU(),
-                                     nn.Linear(1024, 1024),
+        self.tail = nn.Sequential(rff_encoding,
+                                  nn.Linear(512, 1024),
+                                  nn.ReLU())
+
+        self.capsule = nn.Sequential(nn.Linear(1024, 1024),
                                      nn.ReLU(),
                                      nn.Linear(1024, 1024),
                                      nn.ReLU())
@@ -57,9 +58,10 @@ class LocationEncoderCapsule(nn.Module):
         self.head = nn.Sequential(nn.Linear(1024, 768))
 
     def forward(self, x):
-        x = self.capsule(x)
-        x = self.head(x)
-        return x
+        x_t = self.tail(x)
+        x_c = self.capsule(x_t)
+        x_h = self.head(x_c  + x_t)
+        return x_h
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
