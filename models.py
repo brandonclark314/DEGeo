@@ -38,6 +38,18 @@ def augmentGPS(coords, opt):
     coords = F.normalize(coords, dim=1)
     return coords
 
+class ResMLPBlock(nn.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.mlp = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                 nn.ReLU(),
+                                 nn.Linear(hidden_size, hidden_size))
+        
+    def forward(self, x):
+        x = self.mlp(x) + x
+        x = nn.ReLU()(x)
+        return x
+
 class LocationEncoderCapsule(nn.Module):
     def __init__(self, km):
         super(LocationEncoderCapsule, self).__init__()
@@ -50,18 +62,20 @@ class LocationEncoderCapsule(nn.Module):
                                   nn.Linear(512, 1024),
                                   nn.ReLU())
 
-        self.capsule = nn.Sequential(nn.Linear(1024, 1024),
-                                     nn.ReLU(),
-                                     nn.Linear(1024, 1024),
-                                     nn.ReLU())
+        self.ResBlock_1 = ResMLPBlock(1024)
+        self.ResBlock_2 = ResMLPBlock(1024)
+        self.ResBlock_3 = ResMLPBlock(1024)
+        self.ResBlock_4 = ResMLPBlock(1024)
 
         self.head = nn.Sequential(nn.Linear(1024, 768))
 
     def forward(self, x):
-        x_t = self.tail(x)
-        x_c = self.capsule(x_t)
-        x_h = self.head(x_c  + x_t)
-        return x_h
+        x = self.tail(x)
+        x = self.ResBlock_1(x)
+        x = self.ResBlock_2(x)
+        x = self.ResBlock_3(x)
+        x = self.ResBlock_4(x)
+        x = self.head(x)
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
