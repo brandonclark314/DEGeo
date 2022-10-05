@@ -76,6 +76,8 @@ class LocationEncoderCapsule(nn.Module):
         x = self.ResBlock_3(x)
         x = self.ResBlock_4(x)
         x = self.head(x)
+
+        return x
     
 class LocationEncoder(nn.Module):
     def __init__(self, opt=None):
