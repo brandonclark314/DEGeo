@@ -187,8 +187,7 @@ class GeoCLIPLinearProbe(nn.Module):
         
 
     def forward(self, image):
-        with torch.no_grad():
-            image_features = self.GeoCLIP.image_encoder(image)
+        image_features = self.GeoCLIP.image_encoder(image)
 
         image_features = F.normalize(image_features, dim=1)
 
