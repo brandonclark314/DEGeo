@@ -59,6 +59,7 @@ def toCartesian(latitude, longitude):
 
 #model = models.GeoCLIP(opt=opt)
 GeoCLIP = models.GeoCLIP(opt=opt)
+GeoCLIP.load_state_dict(torch.load(opt.saved_model))
 model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
 
 if opt.evaluate:
