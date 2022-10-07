@@ -266,7 +266,8 @@ def eval_images(val_dataloader, model, epoch, opt):
             if opt.traintype == 'CLIP':
                 logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
             if opt.traintype == 'Classification':
-                logits_per_image = model(imgs)
+                logits_per_image = model(imgs)[-1]
+
         probs = logits_per_image.softmax(dim=-1)
         
         # Predict gps location with the highest probability (index)
