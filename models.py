@@ -38,45 +38,27 @@ def augmentGPS(coords, opt):
     coords = F.normalize(coords, dim=1)
     return coords
 
-class ResMLPBlock(nn.Module):
-    def __init__(self, hidden_size):
-        super().__init__()
-        self.mlp = nn.Sequential(nn.Linear(hidden_size, hidden_size),
-                                 nn.ReLU(),
-                                 nn.Linear(hidden_size, hidden_size))
-        
-    def forward(self, x):
-        x = self.mlp(x) + x
-        x = nn.ReLU()(x)
-        return x
-
 class LocationEncoderCapsule(nn.Module):
     def __init__(self, km):
         super(LocationEncoderCapsule, self).__init__()
         Earth_Diameter = 12742
         sigma = Earth_Diameter / (3 * km)
-        rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
+        rff_encoding = GaussianEncoding(sigma=sigma, input_size=3, encoded_size=256)
         self.km = km
 
-        self.tail = nn.Sequential(rff_encoding,
-                                  nn.Linear(512, 1024),
-                                  nn.ReLU())
-
-        self.ResBlock_1 = ResMLPBlock(1024)
-        self.ResBlock_2 = ResMLPBlock(1024)
-        self.ResBlock_3 = ResMLPBlock(1024)
-        self.ResBlock_4 = ResMLPBlock(1024)
+        self.capsule = nn.Sequential(rff_encoding,
+                                     nn.Linear(512, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU(),
+                                     nn.Linear(1024, 1024),
+                                     nn.ReLU())
 
         self.head = nn.Sequential(nn.Linear(1024, 768))
 
     def forward(self, x):
-        x = self.tail(x)
-        x = self.ResBlock_1(x)
-        x = self.ResBlock_2(x)
-        x = self.ResBlock_3(x)
-        x = self.ResBlock_4(x)
+        x = self.capsule(x)
         x = self.head(x)
-
         return x
     
 class LocationEncoder(nn.Module):
@@ -193,6 +175,28 @@ class GeoCLIP(nn.Module):
 
         return logits_per_image, logits_per_location, scene_preds
 
+class GeoCLIPLinearProbe(nn.Module):
+    def __init__(self, GeoCLIP, opt=None):
+        super().__init__()
+        self.opt = opt
+        self.GeoCLIP = GeoCLIP
+
+        self.coarse_classifier = nn.Linear(768, 3298)
+        self.medium_classifier = nn.Linear(768, 7202)
+        self.fine_classifier = nn.Linear(768, 12893)
+        
+
+    def forward(self, image):
+        with torch.no_grad():
+            image_features = self.GeoCLIP.image_encoder(image)
+
+        image_features = F.normalize(image_features, dim=1)
+
+        coarse_out = self.coarse_classifier(image_features)
+        medium_out = self.medium_classifier(image_features)
+        fine_out = self.fine_classifier(image_features)
+
+        return coarse_out, medium_out, fine_out
 
 class ViT(nn.Module):
     def __init__(self):
@@ -200,9 +204,12 @@ class ViT(nn.Module):
 
         self.vit = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         
-        self.coarse_classifier = nn.Linear(768, 2967)
-        self.medium_classifier = nn.Linear(768, 6505)
-        self.fine_classifier = nn.Linear(768, 11570)
+        # self.coarse_classifier = nn.Linear(768, 2967)
+        # self.medium_classifier = nn.Linear(768, 6505)
+        # self.fine_classifier = nn.Linear(768, 11570)
+        self.coarse_classifier = nn.Linear(768, 3298)
+        self.medium_classifier = nn.Linear(768, 7202)
+        self.fine_classifier = nn.Linear(768, 12893)
         
     def forward(self, image):
         out = self.vit(image).last_hidden_state[:,0,:]

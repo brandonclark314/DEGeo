@@ -44,8 +44,8 @@ if not opt.evaluate:
 
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-# img_criterion = torch.nn.CrossEntropyLoss()
-img_criterion = FocalLoss(gamma=5.0)
+img_criterion = torch.nn.CrossEntropyLoss()
+# img_criterion = FocalLoss(gamma=5.0)
 scene_criterion = torch.nn.CrossEntropyLoss()
 
 # Get Locations
@@ -56,16 +56,15 @@ def toCartesian(latitude, longitude):
     y = np.cos(lat) * np.sin(lon)
     z = np.sin(lat)
     return x, y, z
-    
-# fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
-# locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
-# locations = [toCartesian(x[0], x[1]) for x in locations]
-# locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
 
-model = models.GeoCLIP(opt=opt)
+#model = models.GeoCLIP(opt=opt)
+GeoCLIP = models.GeoCLIP(opt=opt)
+model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
+
+model.load_state_dict(torch.load(opt.saved_model))
 
 # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
 optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001) # Original
