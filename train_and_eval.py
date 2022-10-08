@@ -133,9 +133,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             # gps_reg_loss = getRegularizationLoss(model, opt).float()
         
             if opt.scene:
-                scene_loss = scene_criterion(scene_pred[2], scene_labels365).float() 
+                scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
                 
-                loss = (img_loss + gps_loss + scene_loss) / 3
+                loss = (img_loss + scene_loss) / 2
             else:
                 # loss = (img_loss + gps_loss) / 2
                 loss = img_loss
