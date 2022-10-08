@@ -38,6 +38,18 @@ def augmentGPS(coords, opt):
     coords = F.normalize(coords, dim=1)
     return coords
 
+class ResMLPBlock(nn.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.mlp = nn.Sequential(nn.Linear(hidden_size, hidden_size),
+                                 nn.ReLU(),
+                                 nn.Linear(hidden_size, hidden_size))
+        
+    def forward(self, x):
+        x = self.mlp(x) + x
+        x = nn.ReLU()(x)
+        return x
+
 class LocationEncoderCapsule(nn.Module):
     def __init__(self, km):
         super(LocationEncoderCapsule, self).__init__()
@@ -46,17 +58,21 @@ class LocationEncoderCapsule(nn.Module):
         rff_encoding = GaussianEncoding(sigma=sigma, input_size=2, encoded_size=256)
         self.km = km
 
-        self.capsule = nn.Sequential(rff_encoding,
-                                     nn.Linear(512, 1024),
-                                     nn.ReLU(),
-                                     nn.Linear(1024, 1024),
-                                     nn.ReLU(),
-                                     nn.Linear(1024, 1024),
-                                     nn.ReLU())
+        self.base = nn.Sequential(rff_encoding,
+                                  nn.Linear(512, 1024),
+                                  nn.ReLU(),
+                                  nn.Linear(1024, 1024),
+                                  nn.ReLU())
+
+        self.capsule = nn.Sequential(ResMLPBlock(1024),
+                                     ResMLPBlock(1024),
+                                     ResMLPBlock(1024),
+                                     ResMLPBlock(1024))
 
         self.head = nn.Sequential(nn.Linear(1024, 768))
 
     def forward(self, x):
+        x = self.base(x)
         x = self.capsule(x)
         x = self.head(x)
         return x
