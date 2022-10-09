@@ -16,16 +16,16 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) Scene 16.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) Q8K.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP4M Adam (256) Focal Loss Q4K 768D Grad LatLon_3_4.87.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (256) Scene 16'
+    opt.description = 'GeoCLIP100K Adam (256) Q8K'
     opt.archname = 'CLIP'
     opt.evaluate = False
-    opt.scene = True
+    opt.scene = False 
     opt.hier_eval = False
 
     opt.lr = 3e-5 # adam
@@ -34,7 +34,8 @@ def getopt():
     opt.step_size = 3
     opt.partition = 'fine'
 
-    opt.queue_size = 4096
+    # opt.queue_size = 4096
+    opt.queue_size = 8192
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
