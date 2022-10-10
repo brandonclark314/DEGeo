@@ -54,8 +54,8 @@ def SupCR(img_matrix, gps, criterion, opt):
     batch_size = img_matrix.shape[0]
 
     for i in range(batch_size):
-        mask = (dist.t() < dist[:, i].T).t()
-        mask = torch.cat((mask, torch.zeros((batch_size, img_matrix.shape[1] - batch_size), device=opt.device)), dim=1).bool()
+        mask = ((dist.t() < dist[:, i].t()).t()).to(opt.device)
+        # mask = torch.cat((mask, torch.zeros((batch_size, batch_size), device=opt.device)), dim=1).bool()
 
         img_matrix_masked = torch.clone(img_matrix)
         img_matrix_masked[mask] = float('-inf')
