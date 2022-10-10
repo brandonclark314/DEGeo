@@ -60,7 +60,7 @@ def SupCR(img_matrix, gps, criterion, opt):
         img_matrix_masked = torch.clone(img_matrix)
         img_matrix_masked[mask] = float('-inf')
 
-        targets = torch.ones(batch_size, dtype=torch.long) * i
+        targets = torch.ones(batch_size, dtype=torch.long, device=opt.device) * i
 
         loss += criterion(img_matrix_masked, targets)
 
