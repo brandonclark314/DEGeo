@@ -105,59 +105,30 @@ class LocationEncoder(nn.Module):
         super().__init__()
         self.opt = opt
 
-        # 2500, 750, 200, 25, 1
-
-        self.LocEnc2500k1 = LocationEncoderCapsule(km=2500)
-        self.LocEnc2500k2 = LocationEncoderCapsule(km=2500)
-        self.Loc2500kLinear = nn.Linear(1536, 768)
-
-        self.LocEnc750k1 = LocationEncoderCapsule(km=750)
-        self.LocEnc750k2 = LocationEncoderCapsule(km=750)
-        self.Loc750kLinear = nn.Linear(1536, 768)
-
-        self.LocEnc200k1 = LocationEncoderCapsule(km=200)
-        self.LocEnc200k2 = LocationEncoderCapsule(km=200)
-        self.Loc200kLinear = nn.Linear(1536, 768)
-
-        self.LocEnc25k1 = LocationEncoderCapsule(km=25)
-        self.LocEnc25k2 = LocationEncoderCapsule(km=25)
-        self.Loc25kLinear = nn.Linear(1536, 768)
-
+        # 2500, 750, 200, 25, 1 [km]
+        self.LocEnc2500k = LocationEncoderCapsule(km=2500)
+        self.LocEnc750k = LocationEncoderCapsule(km=750)
+        self.LocEnc200k = LocationEncoderCapsule(km=200)
+        self.LocEnc25k = LocationEncoderCapsule(km=25)
         self.LocEnc1k1 = LocationEncoderCapsule(km=1)
-        self.LocEnc1k2 = LocationEncoderCapsule(km=1)
-        self.Loc1kLinear = nn.Linear(1536, 768)
 
-        
     def forward(self, location):
         location = location.float()
         location = location / 180
 
-        L2500k1 = self.LocEnc2500k1(location)
-        L2500k2 = self.LocEnc2500k2(location)
-        L2500k = torch.cat((L2500k1, L2500k2), dim=1)
-        L2500k = self.Loc2500kLinear(L2500k)
+        L2500k = self.LocEnc2500k(location)
+        L750k = self.LocEnc750k(location)
+        L200k = self.LocEnc200k1(location)
+        L25k = self.LocEnc25k1(location)
+        L1k = self.LocEnc1k1(location)
 
-        L750k1 = self.LocEnc750k1(location)
-        L750k2 = self.LocEnc750k2(location)
-        L750k = torch.cat((L750k1, L750k2), dim=1)
-        L750k = self.Loc750kLinear(L750k)
+        # location_features = L2500k + L750k + L200k + L25k + L1k
 
-        L200k1 = self.LocEnc200k1(location)
-        L200k2 = self.LocEnc200k2(location)
-        L200k = torch.cat((L200k1, L200k2), dim=1)
-        L200k = self.Loc200kLinear(L200k)
-
-        L25k1 = self.LocEnc25k1(location)
-        L25k2 = self.LocEnc25k2(location)
-        L25k = torch.cat((L25k1, L25k2), dim=1)
-        L25k = self.Loc25kLinear(L25k)
-
-        L1k1 = self.LocEnc1k1(location)
-        L1k2 = self.LocEnc1k2(location)
-        L1k = torch.cat((L1k1, L1k2), dim=1)
-        L1k = self.Loc1kLinear(L1k)
-
-        location_features = L2500k + L750k + L200k + L25k + L1k
+        location_features = dict(L2500k=L2500k,
+                                 L750k=L750k,
+                                 L200k=L200k,
+                                 L25k=L25k,
+                                 L1k=L1k)
         
         return location_features
     
@@ -215,12 +186,22 @@ class GeoCLIP(nn.Module):
         # Compute Features
         image_features = self.image_encoder(image)
         location_features = self.location_encoder(location)
+        L2500k = location_features['L2500k']
+        L750k = location_features['L750k']
+        L200k = location_features['L200k']
+        L25k = location_features['L25k']
+        L1k = location_features['L1k']
 
         logit_scale = self.logit_scale.exp()
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
-        location_features = F.normalize(location_features, dim=1)
+        # location_features = F.normalize(location_features, dim=1)
+        L2500k = F.normalize(L2500k, dim=1)
+        L750k = F.normalize(L750k, dim=1)
+        L200k = F.normalize(L200k, dim=1)
+        L25k = F.normalize(L25k, dim=1)
+        L1k = F.normalize(L1k, dim=1)
 
         scene_preds = None
         if self.opt.scene:
@@ -234,18 +215,43 @@ class GeoCLIP(nn.Module):
 
             # Get the queue features
             location_queue_features = self.location_encoder(location_queue)
+            L2500k_queue = location_queue_features['L2500k']
+            L750k_queue = location_queue_features['L750k']
+            L200k_queue = location_queue_features['L200k']
+            L25k_queue = location_queue_features['L25k']
+            L1k_queue = location_queue_features['L1k']
 
             # Normalize the queue features
-            location_queue_features = F.normalize(location_queue_features, dim=1)
+            # location_queue_features = F.normalize(location_queue_features, dim=1)
+            L2500k_queue = F.normalize(L2500k_queue, dim=1)
+            L750k_queue = F.normalize(L750k_queue, dim=1)
+            L200k_queue = F.normalize(L200k_queue, dim=1)
+            L25k_queue = F.normalize(L25k_queue, dim=1)
+            L1k_queue = F.normalize(L1k_queue, dim=1)
 
             # Concatenate Features
-            location_features = torch.cat((location_features, location_queue_features), dim=0)
+            L2500k = torch.cat((L2500k, L2500k_queue), dim=0)
+            L750k = torch.cat((L750k, L750k_queue), dim=0)
+            L200k = torch.cat((L200k, L200k_queue), dim=0)
+            L25k = torch.cat((L25k, L25k_queue), dim=0)
+            L1k = torch.cat((L1k, L1k_queue), dim=0)
 
-            # Add Encodings to Queue
+            # Add GPS to Queue
             self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
-        logits_per_image = logit_scale * (image_features @ location_features.t())
+        # logits_per_image = logit_scale * (image_features @ location_features.t())
+        # logits_per_location = logits_per_image.t()
+
+        logits_per_image_L2500k = logit_scale * (image_features @ L2500k.t())
+        logits_per_image_L750k = logit_scale * (image_features @ L750k.t())
+        logits_per_image_L200k = logit_scale * (image_features @ L200k.t())
+        logits_per_image_L25k = logit_scale * (image_features @ L25k.t())
+        logits_per_image_L1k = logit_scale * (image_features @ L1k.t())
+
+        logits_per_image = logits_per_image_L2500k * logits_per_image_L750k * logits_per_image_L200k * \
+                           logits_per_image_L25k * logits_per_image_L1k
+
         logits_per_location = logits_per_image.t()
 
         return logits_per_image, logits_per_location, scene_preds
