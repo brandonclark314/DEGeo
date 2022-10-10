@@ -38,7 +38,35 @@ def toCartesian(latitude, longitude):
     z = np.sin(lat)
     return x, y, z
 
-toCartesianVec = np.vectorize(toCartesian)
+def toCartesianVec(L):
+    L = L * np.pi / 180
+
+    x = torch.cos(L[:, 0]) * torch.cos(L[:, 1])
+    y = torch.cos(L[:, 0]) * torch.sin(L[:, 1])
+    z = torch.sin(L[:, 0])
+    
+    R = torch.stack([x, y, z], dim=1)
+    return R
+
+def SupCR(img_matrix, gps, criterion):
+    loss = 0
+    dist = torch.cdist(gps, gps)
+    batch_size = img_matrix.shape[0]
+
+    for i in range(batch_size):
+        mask = (dist.t() < dist[:, i].T).t()
+        mask = torch.cat((mask, torch.zeros((batch_size, img_matrix.shape[1] - batch_size))), dim=1).bool()
+
+        img_matrix_masked = torch.clone(img_matrix)
+        img_matrix_masked[mask] = float('-inf')
+
+        targets = torch.ones(batch_size, dtype=torch.long) * i
+
+        loss += criterion(img_matrix_masked, targets)
+
+    loss /= batch_size
+    
+    return loss
 
 def toLatLon(x, y, z):
     # Unit sphere to GPS
@@ -50,20 +78,6 @@ def toLatLon(x, y, z):
     lon = lon * 180 / np.pi
     
     return [lat, lon]
-
-def getRandomLatLon(n, opt):
-    # Generate n random coordinates
-    lat = torch.rand((n, 1)) * 180 - 90
-    lon = torch.rand((n, 1)) * 360 - 180
-    return torch.cat((lat, lon), dim=1)
-
-def augmentGPS(coords, opt):
-    # Augment the GPS coordinates
-    eps = torch.randn_like(coords)
-    eps = (F.normalize(eps, dim=1) * 5e-3).to(opt.device)
-    coords = coords + eps
-    coords = F.normalize(coords, dim=1)
-    return coords
 
 def train_images(train_dataloader, model, img_criterion, scene_criterion, optimizer, scheduler, opt, epoch, val_dataloader=None):
     batch_times, model_times, losses = [], [], []
@@ -110,7 +124,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
-            targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
+
+            # targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
             # gps = gps.float()
             # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
@@ -123,14 +138,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
-            img_loss = img_criterion(img_matrix, targets).float()
-
-            # gps_loss = img_criterion(gps_matrix, targets).float()
-
-            # gps_self_loss = img_criterion(gps_self_matrix, targets_self).float()
-            # gps_reg_loss = img_criterion(gps_reg_matrix, targets_reg).float()
-            # gps_reg_loss = nn.MSELoss()(gps_pred, gps.float()).float()
-            # gps_reg_loss = getRegularizationLoss(model, opt).float()
+            # img_loss = img_criterion(img_matrix, targets).float()
+            img_loss = SupCR(img_matrix, gps, img_criterion)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -139,8 +148,6 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             else:
                 # loss = (img_loss + gps_loss) / 2
                 loss = img_loss
-                # + 5 * gps_reg_loss
-                # + 1e-4 * gps_reg_loss
                 
         if opt.traintype == 'Classification':
             
@@ -179,7 +186,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
             # val_cycle * 5 
-        if True and val_dataloader != None and i % (val_cycle) == 0 and i > 0:
+        if True and val_dataloader != None and i % (val_cycle * 5) == 0 and i > 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
