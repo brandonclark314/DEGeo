@@ -48,14 +48,14 @@ def toCartesianVec(L):
     R = torch.stack([x, y, z], dim=1)
     return R
 
-def SupCR(img_matrix, gps, criterion):
+def SupCR(img_matrix, gps, criterion, opt):
     loss = 0
     dist = torch.cdist(gps, gps)
     batch_size = img_matrix.shape[0]
 
     for i in range(batch_size):
         mask = (dist.t() < dist[:, i].T).t()
-        mask = torch.cat((mask, torch.zeros((batch_size, img_matrix.shape[1] - batch_size))), dim=1).bool()
+        mask = torch.cat((mask, torch.zeros((batch_size, img_matrix.shape[1] - batch_size), device=opt.device)), dim=1).bool()
 
         img_matrix_masked = torch.clone(img_matrix)
         img_matrix_masked[mask] = float('-inf')
@@ -139,7 +139,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
             # img_loss = img_criterion(img_matrix, targets).float()
-            img_loss = SupCR(img_matrix, gps, img_criterion)
+            img_loss = SupCR(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
