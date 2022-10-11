@@ -211,6 +211,9 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     elif opt.partition == '26K':
         predictions = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=False) 
         predictions = [predictions[i] for i in preds]
+    elif opt.partition == '100K':
+        predictions = dataloader.get_mp16_classes(classfile="mp16_places365_100K.csv", opt=opt, cartesian_coords=False)
+        predictions = [predictions[i] for i in preds]
     elif opt.partition == 'Mix':
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))
         locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False)
@@ -249,6 +252,8 @@ def eval_images(val_dataloader, model, epoch, opt):
         locations = dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=False)
     elif opt.partition == '26K':
         locations = dataloader.get_yfcc26k_test_classes(opt=opt, cartesian_coords=False)
+    elif opt.partition == '100K':
+        locations = dataloader.get_mp16_classes(classfile="mp16_places365_100K.csv", opt=opt, cartesian_coords=False)
     elif opt.partition == 'Mix':
         fine_gps = pd.read_csv(opt.resources + "cells_50_1000.csv")
         locations = list(fine_gps.loc[:, ['latitude_mean', 'longitude_mean']].to_records(index=False))

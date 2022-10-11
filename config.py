@@ -22,7 +22,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP4M Adam (256) YFCC26K'
+    opt.description = 'GeoCLIP4M Adam (256) Img2GPS3K 100K Classes'
     opt.archname = 'CLIP'
     opt.evaluate = True
     opt.scene = False 
@@ -32,14 +32,14 @@ def getopt():
     # opt.lr = 5e-4
     # opt.lr = 0.01
     opt.step_size = 3
-    opt.partition = 'fine'
+    opt.partition = '100K'
 
     opt.queue_size = 4096
     # opt.queue_size = 32768
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'yfcc26k'
+    opt.testset = 'im2gps3k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
