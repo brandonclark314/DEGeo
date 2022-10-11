@@ -36,7 +36,7 @@ def getopt():
 
     opt.queue_size = 4096
     # opt.queue_size = 32768
-    opt.batch_size = 256
+    opt.batch_size = 16
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
     opt.testset = 'im2gps3k'

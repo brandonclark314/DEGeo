@@ -155,8 +155,6 @@ def get_mp16_classes(classfile="mp16_places365_100K.csv", opt=None, cartesian_co
     for row in class_info.iterrows():
         filename = base_folder + row[1]['IMG_ID']
         if exists(filename):
-            fnames.append(filename)
-            
             latitude = float(row[1]['LAT'])
             longitude = float(row[1]['LON'])
              
