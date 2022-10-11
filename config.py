@@ -22,7 +22,7 @@ def getopt():
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP4M Adam (256) Test 3K Classes'
+    opt.description = 'GeoCLIP4M Adam (256) YFCC26K'
     opt.archname = 'CLIP'
     opt.evaluate = True
     opt.scene = False 
@@ -32,7 +32,7 @@ def getopt():
     # opt.lr = 5e-4
     # opt.lr = 0.01
     opt.step_size = 3
-    opt.partition = '26K'
+    opt.partition = 'fine'
 
     opt.queue_size = 4096
     # opt.queue_size = 32768
