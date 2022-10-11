@@ -122,8 +122,8 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
 
-        # location_features = L2500k + L750k + L200k + L25k + L1k
-        location_features = L2500k * L750k * L200k * L25k * L1k
+        location_features = L2500k + L750k + L200k + L25k + L1k
+        # location_features = L2500k * L750k * L200k * L25k * L1k
         
         return location_features
     
