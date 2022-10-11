@@ -32,14 +32,14 @@ def getopt():
     # opt.lr = 5e-4
     # opt.lr = 0.01
     opt.step_size = 3
-    opt.partition = '3K'
+    opt.partition = '26K'
 
     opt.queue_size = 4096
     # opt.queue_size = 32768
     opt.batch_size = 256
     opt.distances = [2500, 750, 200, 25, 1]
     opt.trainset = 'train100K'
-    opt.testset = 'im2gps3k'
+    opt.testset = 'yfcc26k'
     opt.traintype = 'CLIP'
     opt.device = torch.device('cuda')
 
