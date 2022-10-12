@@ -328,7 +328,7 @@ def eval_images4M(val_dataloader, model, epoch, opt):
     locations = dataloader.get_mp16_classes(classfile="mp16_places365.csv", opt=opt, cartesian_coords=False)
     
     locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
-    locations_batches = torch.split(locations, 10_000)
+    locations_batches = torch.split(locations, 50_000)
 
     preds = []
     targets = []
