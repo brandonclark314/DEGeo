@@ -357,7 +357,7 @@ def eval_images4M(val_dataloader, model, epoch, opt):
             similarities = probs.max(dim=-1).values
             mask = similarities > best_similarities
             best_similarities[mask] = similarities[mask]
-            most_similar_gps[mask] = location_batch[outs[mask]]
+            most_similar_gps[mask] = location_batch[outs[mask]].cpu()
 
         most_similar_gps = most_similar_gps.cpu().numpy()
 
