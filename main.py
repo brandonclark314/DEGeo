@@ -80,7 +80,7 @@ if not os.path.exists('./weights/'):
 best_loss = 10000
 for epoch in range(opt.n_epochs):
     if opt.evaluate:
-        eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+        eval_images4M(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         # cell_zoom(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         # gaussian_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         # loc_enc_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)

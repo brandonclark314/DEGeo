@@ -223,8 +223,8 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
 
     # Plot heatmap
     if dis == 1:
-        print("List: ", type(ground_truth), type(predictions), flush=True)
-        print("Item: ", type(ground_truth[0]), type(predictions[0]), flush=True)
+        # print("List: ", type(ground_truth), type(predictions), flush=True)
+        # print("Item: ", type(ground_truth[0]), type(predictions[0]), flush=True)
         plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
         plot_accuracy_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt.distances, opt=opt)
 
@@ -298,6 +298,80 @@ def eval_images(val_dataloader, model, epoch, opt):
     accuracies = []
     for dis in opt.distances:
         acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
+        print("Accuracy", dis, "is", acc)
+        wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
+
+def distance_accuracy4M(targets, preds, dis=2500, set='im2gps3k', trainset='train', opt=None):
+    ground_truth = [(x[0], x[1]) for x in targets]  
+    predictions = [(x[0], x[1]) for x in preds] 
+
+    # Plot heatmap
+    if dis == 1:
+        # print("List: ", type(ground_truth), type(predictions), flush=True)
+        # print("Item: ", type(ground_truth[0]), type(predictions[0]), flush=True)
+        plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
+        plot_accuracy_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt.distances, opt=opt)
+
+    total = len(ground_truth)
+    correct = 0
+
+    for i in range(len(ground_truth)):
+        if GD(predictions[i], ground_truth[i]).km <= dis:
+            correct += 1
+
+    return correct / total
+
+def eval_images4M(val_dataloader, model, epoch, opt):
+    bar = tqdm(enumerate(val_dataloader), total=len(val_dataloader))
+    
+     # Save all the classes (possible locations to predict)
+    locations = dataloader.get_mp16_classes(classfile="mp16_places365.csv", opt=opt, cartesian_coords=False)
+    
+    locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
+    locations_batches = torch.split(locations, 50_000)
+
+    preds = []
+    targets = []
+
+    model.eval()
+    
+    for i, (imgs, labels, scenes) in bar:
+        labels = labels.cpu().numpy()
+        imgs = imgs.to(opt.device)
+        
+        # Get predictions (probabilities for each location based on similarity)
+        best_similarities = torch.zeros(imgs.shape[0], device=opt.device)
+        most_similar_gps = torch.zeros((imgs.shape[0], 2), device=opt.device)
+
+        for location_batch in locations_batches:
+            with torch.no_grad():
+                logits_per_image, logits_per_location, scene_pred = model(imgs, location_batch)
+
+            probs = logits_per_image.softmax(dim=-1)
+
+            # Predict gps location with the highest probability (index)
+            outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
+            
+            # If the similarity is higher than the previous one, save the new similarity and location
+            similarities = probs.max(dim=-1).values
+            mask = similarities > best_similarities
+            best_similarities[mask] = similarities[mask]
+            most_similar_gps[mask] = location_batch[outs[mask]]
+
+        most_similar_gps = most_similar_gps.cpu().numpy()
+
+        # Save the predictions and targets
+        preds.append(most_similar_gps)
+        targets.append(labels)
+
+    preds = np.concatenate(preds, axis=0)
+    targets = np.concatenate(targets, axis=0)
+    
+    model.train()
+
+    accuracies = []
+    for dis in opt.distances:
+        acc = distance_accuracy4M(targets, preds, dis=dis, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 
