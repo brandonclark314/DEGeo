@@ -348,6 +348,7 @@ def eval_images4M(val_dataloader, model, epoch, opt):
                 logits_per_image, logits_per_location, scene_pred = model(imgs, location_batch)
 
             probs = logits_per_image.softmax(dim=-1)
+            probs = probs.cpu()
 
             # Predict gps location with the highest probability (index)
             outs = torch.argmax(probs, dim=-1).detach().cpu().numpy()
