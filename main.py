@@ -7,7 +7,7 @@ import torch.nn as nn
 import pandas as pd
 
 import dataloader
-from train_and_eval import train_images, eval_images
+from train_and_eval import train_images, eval_images, eval_images4M
 from cell_zoom import cell_zoom
 from gaussian import gaussian_eval
 from loc_enc_eval import loc_enc_eval
