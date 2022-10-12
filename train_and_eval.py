@@ -340,8 +340,8 @@ def eval_images4M(val_dataloader, model, epoch, opt):
         imgs = imgs.to(opt.device)
         
         # Get predictions (probabilities for each location based on similarity)
-        best_similarities = torch.zeros(imgs.shape[0], device=opt.device)
-        most_similar_gps = torch.zeros((imgs.shape[0], 2), device=opt.device)
+        best_similarities = torch.zeros(imgs.shape[0])
+        most_similar_gps = torch.zeros((imgs.shape[0], 2))
 
         for location_batch in locations_batches:
             with torch.no_grad():
