@@ -139,7 +139,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
             img_loss = img_criterion(img_matrix, targets).float()
-            # img_loss = SupCR(img_matrix, gps, img_criterion, opt)
+            gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -147,7 +147,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 loss = (img_loss + scene_loss) / 2
             else:
                 # loss = (img_loss + gps_loss) / 2
-                loss = img_loss
+                loss = img_loss + 0.1 * gps_reg_loss
                 
         if opt.traintype == 'Classification':
             
@@ -186,7 +186,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
             # val_cycle * 5 
-        if True and val_dataloader != None and i % (val_cycle * 5) == 0 and i > 0:
+        if True and val_dataloader != None and i % (val_cycle * 15) == 0 and i > 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
