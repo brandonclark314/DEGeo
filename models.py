@@ -122,8 +122,9 @@ class LocationEncoder(nn.Module):
         L25k = self.LocEnc25k(location)
         L1k = self.LocEnc1k(location)
 
-        location_features = L2500k + L750k + L200k + L25k + L1k
+        # location_features = L2500k + L750k + L200k + L25k + L1k
         # location_features = L2500k * L750k * L200k * L25k * L1k
+        location_features = dict(L2500k=L2500k, L750k=L750k, L200k=L200k, L25k=L25k, L1k=L1k)
         
         return location_features
     
@@ -185,7 +186,12 @@ class GeoCLIP(nn.Module):
         
         # Normalize features
         image_features = F.normalize(image_features, dim=1)
-        location_features = F.normalize(location_features, dim=1)
+        #location_features = F.normalize(location_features, dim=1)
+        L2500k = F.normalize(location_features['L2500k'], dim=1)
+        L750k = F.normalize(location_features['L750k'], dim=1)
+        L200k = F.normalize(location_features['L200k'], dim=1)
+        L25k = F.normalize(location_features['L25k'], dim=1)
+        L1k = F.normalize(location_features['L1k'], dim=1)
 
         scene_preds = None
         if self.opt.scene:
@@ -201,19 +207,39 @@ class GeoCLIP(nn.Module):
             location_queue_features = self.location_encoder(location_queue)
 
             # Normalize the queue features
-            location_queue_features = F.normalize(location_queue_features, dim=1)
+            # location_queue_features = F.normalize(location_queue_features, dim=1)
+            L2500k_queue = F.normalize(location_queue_features['L2500k'], dim=1)
+            L750k_queue = F.normalize(location_queue_features['L750k'], dim=1)
+            L200k_queue = F.normalize(location_queue_features['L200k'], dim=1)
+            L25k_queue = F.normalize(location_queue_features['L25k'], dim=1)
+            L1k_queue = F.normalize(location_queue_features['L1k'], dim=1)
 
             # Concatenate Features
-            location_features = torch.cat([location_features, location_queue_features], dim=0)
+            # location_features = torch.cat([location_features, location_queue_features], dim=0)
+            L2500k = torch.cat([L2500k, L2500k_queue], dim=0)
+            L750k = torch.cat([L750k, L750k_queue], dim=0)
+            L200k = torch.cat([L200k, L200k_queue], dim=0)
+            L25k = torch.cat([L25k, L25k_queue], dim=0)
+            L1k = torch.cat([L1k, L1k_queue], dim=0)
 
             # Add GPS to Queue
             self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
-        logits_per_image = logit_scale * (image_features @ location_features.t())
-        logits_per_location = logits_per_image.t()
+        # logits_per_image = logit_scale * (image_features @ location_features.t())
+        logits_per_image_L2500k = logit_scale * (image_features @ L2500k.t())
+        logits_per_image_L750k = logit_scale * (image_features @ L750k.t())
+        logits_per_image_L200k = logit_scale * (image_features @ L200k.t())
+        logits_per_image_L25k = logit_scale * (image_features @ L25k.t())
+        logits_per_image_L1k = logit_scale * (image_features @ L1k.t())
 
-        return logits_per_image, logits_per_location, scene_preds
+        logits_per_image = dict(Sim2500k=logits_per_image_L2500k,
+                                Sim750k=logits_per_image_L750k,
+                                Sim200k=logits_per_image_L200k,
+                                Sim25k=logits_per_image_L25k,
+                                Sim1k=logits_per_image_L1k)
+        
+        return logits_per_image, scene_preds
 
 class GeoCLIPLinearProbe(nn.Module):
     def __init__(self, GeoCLIP, opt=None):

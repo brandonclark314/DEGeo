@@ -123,9 +123,15 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         optimizer.zero_grad()
         
         if opt.traintype == 'CLIP':
-            img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
+            img_matrix, scene_pred = model(imgs, gps, train=True)
 
-            targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
+            Sim2500k = img_matrix["Sim2500k"]
+            Sim750k = img_matrix["Sim750k"]
+            Sim200k = img_matrix["Sim200k"]
+            Sim25k = img_matrix["Sim25k"]
+            Sim1k = img_matrix["Sim1k"]
+
+            targets = torch.arange(Sim2500k.shape[0], dtype=torch.long, device=opt.device)
             # gps = gps.float()
             # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
@@ -138,7 +144,15 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
-            img_loss = img_criterion(img_matrix, targets).float()
+            loss_2500k = img_criterion(Sim2500k, targets).float()
+            loss_750k = img_criterion(Sim750k, targets).float()
+            loss_200k = img_criterion(Sim200k, targets).float()
+            loss_25k = img_criterion(Sim25k, targets).float()
+            loss_1k = img_criterion(Sim1k, targets).float()
+
+            img_loss = (loss_2500k + loss_750k + loss_200k + loss_25k + loss_1k) / 5
+
+            # img_loss = img_criterion(img_matrix, targets).float()
             # gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
@@ -180,6 +194,11 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
+                wandb.log({"Loss 2500k": loss_2500k.item()}) 
+                wandb.log({"Loss 750k": loss_750k.item()}) 
+                wandb.log({"Loss 200k": loss_200k.item()}) 
+                wandb.log({"Loss 25k": loss_25k.item()}) 
+                wandb.log({"Loss 1k": loss_1k.item()}) 
                 # wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -277,7 +296,16 @@ def eval_images(val_dataloader, model, epoch, opt):
         # Get predictions (probabilities for each location based on similarity)
         with torch.no_grad():
             if opt.traintype == 'CLIP':
-                logits_per_image, logits_per_location, scene_pred = model(imgs, locations)
+                logits_per_image, scene_pred = model(imgs, locations)
+
+                Sim2500k = logits_per_image["Sim2500k"]
+                Sim750k = logits_per_image["Sim750k"]
+                Sim200k = logits_per_image["Sim200k"]
+                Sim25k = logits_per_image["Sim25k"]
+                Sim1k = logits_per_image["Sim1k"]
+
+                logits_per_image = Sim2500k * Sim750k * Sim200k * Sim25k * Sim1k
+
             if opt.traintype == 'Classification':
                 logits_per_image = model(imgs)[-1]
 

@@ -77,8 +77,8 @@ wandb.watch(model, scene_criterion, log="all")
 if not os.path.exists('./weights/'):
     os.mkdir('./weights/')
 
-best_loss = 3.58
-for epoch in range(13, opt.n_epochs):
+best_loss = 40000
+for epoch in range(opt.n_epochs):
     if opt.evaluate:
         eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         # cell_zoom(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
