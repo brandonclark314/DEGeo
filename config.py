@@ -18,7 +18,7 @@ def getopt():
 
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) GPS Discrete Loss.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP4M Adam (256) Focal Loss Q4K 768D Grad LatLon_3_4.87.pth"
-    opt.saved_model = "/home/br087771/DEGeo/weights/GeoCLIP100K Adam (256) Focal Loss Q4K 768D Grad LatLon_62_5.27.pth"
+    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) Focal Loss Q4K 768D Grad LatLon_62_5.27.pth"
 
     opt.size = 224
     opt.n_epochs = 64
