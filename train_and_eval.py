@@ -409,7 +409,7 @@ def eval_images_weighted(val_dataloader, model, epoch, opt):
     preds = []
     targets = []
 
-    for i, (imgs, classes) in bar:
+    for i, (imgs, classes, scenes) in bar:
 
         labels = classes.cpu().numpy()
 
