@@ -36,22 +36,13 @@ wandb.run.name = opt.description
 wandb.save()
 
 # MP-16
-# if not opt.evaluate:
-#     train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
-# val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
-
-# if not opt.evaluate:
-#     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
-
-# val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
-
-# BDD
 if not opt.evaluate:
-    train_dataset = dataloader.BDDDataset(split="train", opt=opt)
-val_dataset = dataloader.BDDDataset(split="test", opt=opt)
+    train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
+val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
 
 if not opt.evaluate:
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
 img_criterion = torch.nn.CrossEntropyLoss()
@@ -90,6 +81,9 @@ wandb.watch(model, scene_criterion, log="all")
 
 if not os.path.exists('./weights/'):
     os.mkdir('./weights/')
+
+
+# --------------------------------- Trainning -------------------------------- #
 
 best_loss = 40000
 for epoch in range(opt.n_epochs):
