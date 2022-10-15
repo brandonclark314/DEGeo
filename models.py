@@ -193,21 +193,21 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
         
-        # if train:
-        #     # Get the queues
-        #     location_queue = self.gps_queue.t().detach()
+        if train:
+            # Get the queues
+            location_queue = self.gps_queue.t().detach()
 
-        #     # Get the queue features
-        #     location_queue_features = self.location_encoder(location_queue)
+            # Get the queue features
+            location_queue_features = self.location_encoder(location_queue)
 
-        #     # Normalize the queue features
-        #     location_queue_features = F.normalize(location_queue_features, dim=1)
+            # Normalize the queue features
+            location_queue_features = F.normalize(location_queue_features, dim=1)
 
-        #     # Concatenate Features
-        #     location_features = torch.cat([location_features, location_queue_features], dim=0)
+            # Concatenate Features
+            location_features = torch.cat([location_features, location_queue_features], dim=0)
 
-        #     # Add GPS to Queue
-        #     self._dequeue_and_enqueue(location)
+            # Add GPS to Queue
+            self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
         logits_per_image = logit_scale * (image_features @ location_features.t())
@@ -221,14 +221,12 @@ class GeoCLIPLinearProbe(nn.Module):
         self.opt = opt
         self.GeoCLIP = GeoCLIP
 
-        self.coarse_classifier = nn.Linear(768, 3298)
-        self.medium_classifier = nn.Linear(768, 7202)
-        self.fine_classifier = nn.Linear(768, 12893)
-        
+        self.coarse_classifier = nn.Linear(768, 2967)
+        self.medium_classifier = nn.Linear(768, 6505)
+        self.fine_classifier = nn.Linear(768, 11570)
 
     def forward(self, image):
         image_features = self.GeoCLIP.image_encoder(image)
-
         image_features = F.normalize(image_features, dim=1)
 
         coarse_out = self.coarse_classifier(image_features)
@@ -243,12 +241,12 @@ class ViT(nn.Module):
 
         self.vit = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         
-        # self.coarse_classifier = nn.Linear(768, 2967)
-        # self.medium_classifier = nn.Linear(768, 6505)
-        # self.fine_classifier = nn.Linear(768, 11570)
-        self.coarse_classifier = nn.Linear(768, 3298)
-        self.medium_classifier = nn.Linear(768, 7202)
-        self.fine_classifier = nn.Linear(768, 12893)
+        self.coarse_classifier = nn.Linear(768, 2967)
+        self.medium_classifier = nn.Linear(768, 6505)
+        self.fine_classifier = nn.Linear(768, 11570)
+        # self.coarse_classifier = nn.Linear(768, 3298)
+        # self.medium_classifier = nn.Linear(768, 7202)
+        # self.fine_classifier = nn.Linear(768, 12893)
         
     def forward(self, image):
         out = self.vit(image).last_hidden_state[:,0,:]

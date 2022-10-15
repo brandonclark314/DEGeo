@@ -78,7 +78,7 @@ def GPSLoss(img_matrix, gps, criterion, opt):
     loss = 0
     distances = [1, 25, 200, 750, 2500]
     for distance in distances:
-        distance = distance / (Earth_Diameter * np.pi)
+        distance = (distance / (Earth_Diameter * np.pi)) * 180
 
         mask = ((dist < distance) & (dist != 0)).to(opt.device)
 
@@ -415,10 +415,10 @@ def eval_images_weighted(val_dataloader, model, epoch, opt):
 
         imgs = imgs.to(opt.device)
         with torch.no_grad():
-            outs1, outs2, outs3 = model(imgs, evaluate=True)
+            outs1, outs2, outs3 = model(imgs)
 
         outs1 = F.softmax(outs1, dim=1)
-        outs2= F.softmax(outs2, dim=1)
+        outs2 = F.softmax(outs2, dim=1)
         outs3 = F.softmax(outs3, dim=1)
 
         coarseweights = torch.ones(outs2.shape).cuda()

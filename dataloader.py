@@ -123,7 +123,6 @@ def get_im2gps3k_test(classfile="im2gps3k_places365.csv", opt=None, cartesian_co
             else:
                 classes.append([latitude, longitude])
                 
-    
     #print(classes)
     return fnames, classes, scenes
 
@@ -209,7 +208,6 @@ def get_yfcc26k_test_classes(classfile="yfcc25600_places365.csv", opt=None, cart
                 classes.append([latitude, longitude])
     
     return classes
-
 
 def read_frames(fname, one_frame=False):
     path = glob.glob(fname + '/*.jpg')

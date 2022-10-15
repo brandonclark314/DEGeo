@@ -35,17 +35,27 @@ wandb.init(project='DEGeo',
 wandb.run.name = opt.description
 wandb.save()
 
+# MP-16
+# if not opt.evaluate:
+#     train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
+# val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
+
+# if not opt.evaluate:
+#     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+
+# val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
+
+# BDD
 if not opt.evaluate:
-    train_dataset = dataloader.M16Dataset(split=opt.trainset, opt=opt)
-val_dataset = dataloader.M16Dataset(split=opt.testset, opt=opt)
+    train_dataset = dataloader.BDDDataset(split="train", opt=opt)
+val_dataset = dataloader.BDDDataset(split="test", opt=opt)
 
 if not opt.evaluate:
     train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
-
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-# img_criterion = torch.nn.CrossEntropyLoss()
-img_criterion = FocalLoss(gamma=5.0)
+img_criterion = torch.nn.CrossEntropyLoss()
+# img_criterion = FocalLoss(gamma=5.0)
 scene_criterion = torch.nn.CrossEntropyLoss()
 
 # Get Locations
@@ -57,17 +67,21 @@ def toCartesian(latitude, longitude):
     z = np.sin(lat)
     return x, y, z
 
-model = models.GeoCLIP(opt=opt)
+# model = models.GeoCLIP(opt=opt)
 
-# GeoCLIP = models.GeoCLIP(opt=opt)
-# GeoCLIP.load_state_dict(torch.load(opt.saved_model))
-# model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
+GeoCLIP = models.GeoCLIP(opt=opt)
+GeoCLIP.load_state_dict(torch.load(opt.saved_model))
+
+for param in GeoCLIP.parameters():
+    param.requires_grad = False
+
+model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))
 
-# optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
-optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001) # Original
+optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum=0.9, weight_decay=0.0001)
+# optimizer = torch.optim.Adam(model.parameters(), lr=opt.lr, weight_decay=0.0001) # Original
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=opt.step_size, gamma=0.5)
 
 _ = model.to(opt.device)
@@ -81,13 +95,12 @@ best_loss = 40000
 for epoch in range(opt.n_epochs):
     if opt.evaluate:
         eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-        # cell_zoom(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-        # gaussian_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-        # loc_enc_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
-        # fibonacci_eval(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
         break
 
-    eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
+    if opt.hier_eval:
+        eval_images_weighted(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt)
+    else:
+        eval_images(val_dataloader=val_dataloader, model=model, epoch=epoch, opt=opt) 
 
     if not opt.evaluate:
         _ = model.train()

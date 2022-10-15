@@ -16,22 +16,21 @@ def getopt():
 
     opt.resources = "/home/br087771/DEGeo/"
 
-    opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) GPS Discrete Loss.pth"
+    # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP100K Adam (256) GPS Discrete Loss.pth"
     # opt.saved_model = "/home/vi844593/DEGeo/weights/GeoCLIP4M Adam (256) Focal Loss Q4K 768D Grad LatLon_3_4.87.pth"
+    opt.saved_model = "/home/br087771/DEGeo/weights/GeoCLIP100K Adam (256) Focal Loss Q4K 768D Grad LatLon_62_5.27.pth"
 
     opt.size = 224
     opt.n_epochs = 64
 
-    opt.description = 'GeoCLIP100K Adam (256) GPS Discrete Loss'
+    opt.description = 'GeoCLIP100K SGD (256) Linear Probe'
     opt.archname = 'CLIP'
     opt.evaluate = False
     opt.scene = False 
-    opt.hier_eval = False
+    opt.hier_eval = True
 
-    opt.lr = 3e-5 # adam
-    # opt.lr = 1.88e-6 # Epoch 13
-    # opt.lr = 5e-4
-    # opt.lr = 0.01
+    # opt.lr = 3e-5 # adam
+    opt.lr = 0.01
     opt.step_size = 3
     opt.partition = 'fine'
 
@@ -42,7 +41,7 @@ def getopt():
     opt.trainset = 'train100K'
     # opt.testset = 'im2gps3k'
     opt.testset = 'yfcc26k'
-    opt.traintype = 'CLIP'
+    opt.traintype = 'Classification'
     opt.device = torch.device('cuda')
 
     return opt
