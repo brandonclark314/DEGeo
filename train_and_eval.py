@@ -68,6 +68,29 @@ def SupCR(img_matrix, gps, criterion, opt):
     
     return loss
 
+def GPSLoss(img_matrix, gps, criterion, opt):
+    Earth_Diameter = 12742
+
+    dist = torch.cdist(gps, gps)
+    batch_size = img_matrix.shape[0]
+    targets = torch.arange(batch_size, dtype=torch.long, device=opt.device)
+
+    loss = 0
+    distances = [1, 25, 200, 750, 2500]
+    for distance in distances:
+        distance = distance / (Earth_Diameter * np.pi)
+
+        mask = ((dist < distance) & (dist != 0)).to(opt.device)
+
+        img_matrix_masked = torch.clone(img_matrix)
+        img_matrix_masked[mask] = float('-inf')
+
+        loss += criterion(img_matrix_masked, targets)
+
+    loss /= len(distances)
+    
+    return loss
+
 def toLatLon(x, y, z):
     # Unit sphere to GPS
     lat = np.arctan2(z, np.sqrt(x**2 + y**2))
@@ -125,7 +148,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
 
-            targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
+            # targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
             # gps = gps.float()
             # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
@@ -138,8 +161,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
-            img_loss = img_criterion(img_matrix, targets).float()
+            # img_loss = img_criterion(img_matrix, targets).float()
             # gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
+            img_loss = GPSLoss(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
