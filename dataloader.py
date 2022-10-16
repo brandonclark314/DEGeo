@@ -249,8 +249,12 @@ class M16Dataset(Dataset):
             self.coarse2medium = maps[0]
             self.medium2fine = maps[1]
 
-            self.medium2fine[929] = 0
-            self.medium2fine[3050] = 0
+            self.medium2fine[1019] = 0
+            self.medium2fine[4595] = 0
+            self.medium2fine[4687] = 0
+
+            # self.medium2fine[929] = 0
+            # self.medium2fine[3050] = 0
         
         # print(fnames[0])
 
