@@ -221,9 +221,9 @@ class GeoCLIPLinearProbe(nn.Module):
         self.opt = opt
         self.GeoCLIP = GeoCLIP
 
-        self.coarse_classifier = nn.Linear(768, 2967)
-        self.medium_classifier = nn.Linear(768, 6505)
-        self.fine_classifier = nn.Linear(768, 11570)
+        self.coarse_classifier = nn.Linear(768, 3298)
+        self.medium_classifier = nn.Linear(768, 7202)
+        self.fine_classifier = nn.Linear(768, 12893)
 
     def forward(self, image):
         image_features = self.GeoCLIP.image_encoder(image)
@@ -241,12 +241,12 @@ class ViT(nn.Module):
 
         self.vit = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k", output_hidden_states=True)
         
-        self.coarse_classifier = nn.Linear(768, 2967)
-        self.medium_classifier = nn.Linear(768, 6505)
-        self.fine_classifier = nn.Linear(768, 11570)
-        # self.coarse_classifier = nn.Linear(768, 3298)
-        # self.medium_classifier = nn.Linear(768, 7202)
-        # self.fine_classifier = nn.Linear(768, 12893)
+        # self.coarse_classifier = nn.Linear(768, 2967)
+        # self.medium_classifier = nn.Linear(768, 6505)
+        # self.fine_classifier = nn.Linear(768, 11570)
+        self.coarse_classifier = nn.Linear(768, 3298)
+        self.medium_classifier = nn.Linear(768, 7202)
+        self.fine_classifier = nn.Linear(768, 12893)
         
     def forward(self, image):
         out = self.vit(image).last_hidden_state[:,0,:]
