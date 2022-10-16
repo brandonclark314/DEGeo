@@ -451,7 +451,7 @@ def eval_images_weighted(val_dataloader, model, epoch, opt):
     accuracies = []
     for dis in opt.distances:
 
-        acc = distance_accuracy(targets, preds, dis=dis, trainset=opt.trainset, opt=opt)
+        acc = distance_accuracy(targets, preds, dis=dis, opt=opt)
         print("Accuracy", dis, "is", acc)
         wandb.log({opt.testset + " " +  str(dis) + " Accuracy" : acc})
 
