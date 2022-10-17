@@ -166,8 +166,8 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
 
-            # targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
-            # gps = gps.float()
+            targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
+            gps = gps.float()
             # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
         if opt.traintype == 'Classification':
