@@ -45,8 +45,8 @@ if not opt.evaluate:
 
 val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=opt.batch_size, num_workers=opt.kernels, shuffle=True, drop_last=False)
 
-img_criterion = torch.nn.CrossEntropyLoss()
-# img_criterion = FocalLoss(gamma=5.0)
+# img_criterion = torch.nn.CrossEntropyLoss()
+img_criterion = FocalLoss(gamma=5.0)
 scene_criterion = torch.nn.CrossEntropyLoss()
 
 # Get Locations
@@ -58,15 +58,15 @@ def toCartesian(latitude, longitude):
     z = np.sin(lat)
     return x, y, z
 
-# model = models.GeoCLIP(opt=opt)
+model = models.GeoCLIP(opt=opt)
 
-GeoCLIP = models.GeoCLIP(opt=opt)
-GeoCLIP.load_state_dict(torch.load(opt.saved_model))
+# GeoCLIP = models.GeoCLIP(opt=opt)
+# GeoCLIP.load_state_dict(torch.load(opt.saved_model))
 
-for param in GeoCLIP.parameters():
-    param.requires_grad = False
+# for param in GeoCLIP.parameters():
+#     param.requires_grad = False
 
-model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
+# model = models.GeoCLIPLinearProbe(opt=opt, GeoCLIP=GeoCLIP)
 
 if opt.evaluate:
     model.load_state_dict(torch.load(opt.saved_model))

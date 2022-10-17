@@ -48,6 +48,24 @@ def toCartesianVec(L):
     R = torch.stack([x, y, z], dim=1)
     return R
 
+def getNRandomCoordinates(n, opt):
+    L = torch.normal(0, 1, (n, 3), device=opt.device)
+    L = F.normalize(L, dim=1)
+
+    # Convert to GPS
+    x = L[:, 0]
+    y = L[:, 1]
+    z = L[:, 2]
+
+    lat = torch.arctan2(z, torch.sqrt(x**2 + y**2))
+    lon = torch.arctan2(y, x)
+    
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    
+    L = torch.stack([lat, lon], dim=1)
+    return L
+
 def SupCR(img_matrix, gps, criterion, opt):
     loss = 0
     dist = torch.cdist(gps, gps)
@@ -161,9 +179,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         loss = 0
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
-            # img_loss = img_criterion(img_matrix, targets).float()
-            # gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
-            img_loss = GPSLoss(img_matrix, gps, img_criterion, opt)
+            img_loss = img_criterion(img_matrix, targets).float()
+            gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
+            # img_loss = GPSLoss(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
                 scene_loss = scene_criterion(scene_pred[1], scene_labels16).float() 
@@ -171,7 +189,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 loss = (img_loss + scene_loss) / 2
             else:
                 # loss = (img_loss + gps_loss) / 2
-                loss = img_loss
+                loss = (img_loss + gps_reg_loss) / 2
                 # + 0.1 * gps_reg_loss
                 
         if opt.traintype == 'Classification':
@@ -204,6 +222,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
+                wandb.log({"GPS Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
@@ -211,7 +230,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 wandb.log({"Scene Loss": scene_loss.item()})
             #print("interation", i, "of", len(data_iterator))
             # val_cycle * 5 
-        if True and val_dataloader != None and i % (val_cycle * 15) == 0 and i > 0:
+        if True and val_dataloader != None and i % (val_cycle * 5) == 0 and i > 0:
             if opt.hier_eval:
                 eval_images_weighted(val_dataloader, model, epoch, opt)
             else:
@@ -248,8 +267,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
 
     # Plot heatmap
     if dis == 1:
-        # print("List: ", type(ground_truth), type(predictions), flush=True)
-        # print("Item: ", type(ground_truth[0]), type(predictions[0]), flush=True)
         plot_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt)
         plot_accuracy_heatmap(torch.tensor(ground_truth), torch.tensor(predictions), opt.distances, opt=opt)
 
@@ -257,8 +274,6 @@ def distance_accuracy(targets, preds, dis=2500, set='im2gps3k', trainset='train'
     correct = 0
 
     for i in range(len(ground_truth)):
-        #print(GD(predictions[i], ground_truth[i]).km)
-        #print(f'Ground Truth: {ground_truth[i]}, Prediction: {predictions[i]}')
         if GD(predictions[i], ground_truth[i]).km <= dis:
             correct += 1
 
@@ -286,8 +301,6 @@ def eval_images(val_dataloader, model, epoch, opt):
         locations += dataloader.get_im2gps3k_test_classes(opt=opt, cartesian_coords=True)
     
     locations = torch.tensor(locations, dtype=torch.float32, device=opt.device)
-    # locations = torch.tensor(locations)
-    # locations = locations.to(opt.device)
 
     preds = []
     targets = []

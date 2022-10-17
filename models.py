@@ -193,21 +193,21 @@ class GeoCLIP(nn.Module):
                            self.scene_predictor16(image_features),
                            self.scene_predictor365(image_features)]
         
-        if train:
-            # Get the queues
-            location_queue = self.gps_queue.t().detach()
+        # if train:
+        #     # Get the queues
+        #     location_queue = self.gps_queue.t().detach()
 
-            # Get the queue features
-            location_queue_features = self.location_encoder(location_queue)
+        #     # Get the queue features
+        #     location_queue_features = self.location_encoder(location_queue)
 
-            # Normalize the queue features
-            location_queue_features = F.normalize(location_queue_features, dim=1)
+        #     # Normalize the queue features
+        #     location_queue_features = F.normalize(location_queue_features, dim=1)
 
-            # Concatenate Features
-            location_features = torch.cat([location_features, location_queue_features], dim=0)
+        #     # Concatenate Features
+        #     location_features = torch.cat([location_features, location_queue_features], dim=0)
 
-            # Add GPS to Queue
-            self._dequeue_and_enqueue(location)
+        #     # Add GPS to Queue
+        #     self._dequeue_and_enqueue(location)
 
         # Cosine similarity (Image Features - Location Feature Queue)
         logits_per_image = logit_scale * (image_features @ location_features.t())
