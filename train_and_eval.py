@@ -165,9 +165,9 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         
         if opt.traintype == 'CLIP':
             img_matrix, gps_matrix, scene_pred = model(imgs, gps, train=True)
-
             targets = torch.arange(img_matrix.shape[0], dtype=torch.long, device=opt.device)
-            gps = gps.float()
+
+            # gps = gps.float()
             # gps_weights = (torch.eye(img_matrix.shape[0]) + torch.cdist(gps, gps) )
             
         if opt.traintype == 'Classification':
@@ -180,7 +180,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
         if opt.traintype == 'CLIP':     
             # criterion = nn.CrossEntropyLoss(weight=gps_weights)
             img_loss = img_criterion(img_matrix, targets).float()
-            gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
+            # gps_reg_loss = SupCR(img_matrix, gps, img_criterion, opt)
             # img_loss = GPSLoss(img_matrix, gps, img_criterion, opt)
         
             if opt.scene:
@@ -189,7 +189,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
                 loss = (img_loss + scene_loss) / 2
             else:
                 # loss = (img_loss + gps_loss) / 2
-                loss = (img_loss + gps_reg_loss) / 2
+                loss = img_loss
                 # + 0.1 * gps_reg_loss
                 
         if opt.traintype == 'Classification':
@@ -222,7 +222,7 @@ def train_images(train_dataloader, model, img_criterion, scene_criterion, optimi
             if opt.traintype == 'CLIP':
                 wandb.log({"Training Loss" : loss.item()})
                 wandb.log({"Image Loss": img_loss.item()}) 
-                wandb.log({"GPS Loss": gps_reg_loss.item()})
+                # wandb.log({"GPS Loss": gps_reg_loss.item()})
                 # wandb.log({"GPS Loss": gps_loss.item()})
             if opt.traintype == 'Classification':
                 wandb.log({"Classification Loss" : loss.item()})
