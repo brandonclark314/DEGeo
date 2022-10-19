@@ -2,6 +2,7 @@ from importlib.metadata import requires
 import sched
 
 from transformers import ViTModel
+from transformers import SwinModel
 from transformers import ResNetForImageClassification as ResNet
 
 import numpy as np
@@ -142,6 +143,25 @@ class ImageEncoder(nn.Module):
         image_features = image_features[:,0,:]
         image_features = self.mlp(image_features)
         return image_features
+
+class ImageEncoderSwin(nn.Module):
+    def __init__(self, opt=None):
+        super().__init__()
+        self.opt = opt
+
+        self.image_encoder = SwinModel.from_pretrained("microsoft/swin-base-patch4-window7-224-in22k", output_hidden_states=True)
+        self.n_features = 1024
+
+        self.mlp = nn.Sequential(nn.Linear(1024, 768))
+        
+    def forward(self, image):
+        x = self.image_encoder(image, output_attentions=True)
+        attns = x.attentions
+        image_features = x.pooler_output
+
+        image_features = self.mlp(image_features)
+
+        return image_features
         
 class GeoCLIP(nn.Module):
     def __init__(self,  input_resolution=224, opt=None, dim = 768):
@@ -152,7 +172,8 @@ class GeoCLIP(nn.Module):
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
-        self.image_encoder = ImageEncoder(opt)
+        # self.image_encoder = ImageEncoder(opt)
+        self.image_encoder = ImageEncoderSwin(opt)
         self.location_encoder = LocationEncoder(opt)
         
         # Create GPS queue
