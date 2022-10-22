@@ -108,10 +108,10 @@ class LocationEncoder(nn.Module):
 
         max_dist = 2500
         # Logspace
-        # dists = np.logspace(0.0, np.log10(2500), 5)
+        dists = np.logspace(0.0, np.log10(2500), 5)
 
         # Linspace
-        dists = np.linspace(1, max_dist, 5)
+        # dists = np.linspace(1, max_dist, 5)
 
 
         # 2500, 750, 200, 25, 1 [km]
