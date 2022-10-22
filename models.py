@@ -107,7 +107,12 @@ class LocationEncoder(nn.Module):
         self.opt = opt
 
         max_dist = 2500
-        dists = np.logspace(0.0, np.log10(2500), 5)
+        # Logspace
+        # dists = np.logspace(0.0, np.log10(2500), 5)
+
+        # Linspace
+        dists = np.linspace(1, max_dist, 5)
+
 
         # 2500, 750, 200, 25, 1 [km]
         self.LocEnc2500k = LocationEncoderCapsule(km=dists[4])
@@ -172,8 +177,8 @@ class GeoCLIP(nn.Module):
         self.input_resolution = input_resolution
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         
-        # self.image_encoder = ImageEncoder(opt)
-        self.image_encoder = ImageEncoderSwin(opt)
+        self.image_encoder = ImageEncoder(opt)
+        # self.image_encoder = ImageEncoderSwin(opt)
         self.location_encoder = LocationEncoder(opt)
         
         # Create GPS queue
